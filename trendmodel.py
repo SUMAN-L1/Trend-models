@@ -10,7 +10,7 @@ import statsmodels.api as sm
 # Function to fit and plot regression models
 def fit_and_plot_regression(x, y, degree):
     polynomial_features = PolynomialFeatures(degree=degree)
-    x_poly = polynomial_features.fit_transform(x)
+    x_poly = polynomial_features.fit_transform(x.reshape(-1, 1))
     
     model = LinearRegression()
     model.fit(x_poly, y)
@@ -45,7 +45,7 @@ def fit_and_plot_cobb_douglas(x, y):
     x_log = np.log(x)
     y_log = np.log(y)
     
-    x_log_const = sm.add_constant(x_log)
+    x_log_const = sm.add_constant(x_log.reshape(-1, 1))  # Ensure x_log is 2D
     model = sm.OLS(y_log, x_log_const).fit()
     
     y_pred_log = model.predict(x_log_const)
@@ -99,7 +99,7 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
         future_x_log = np.log(future_x)
-        future_y_log_pred = model.predict(sm.add_constant(future_x_log))
+        future_y_log_pred = model.predict(sm.add_constant(future_x_log.reshape(-1, 1)))  # Ensure future_x_log is 2D
         future_y_pred = np.exp(future_y_log_pred)
         
     return future_x, future_y_pred
