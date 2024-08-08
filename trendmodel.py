@@ -86,7 +86,12 @@ if uploaded_file is not None:
 
         # Model Equations Table
         model_info = {
-            'Model': ['Linear Regression', 'Quadratic Regression', 'Quartic Regression', 'Cobb-Douglas Regression'],
+            'Model': [
+                'Linear Regression',
+                'Quadratic Regression',
+                'Quartic Regression',
+                'Cobb-Douglas Regression'
+            ],
             'Equation': [
                 'Y = a + bX',
                 'Y = a + bX + cX^2',
