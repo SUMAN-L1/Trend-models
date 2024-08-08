@@ -38,7 +38,7 @@ def fit_and_plot_regression(x, y, degree):
     plt.grid(True)
     st.pyplot(plt)
     
-    return mse, r2, intercept, coefficients, p_values
+    return mse, r2, intercept, coefficients, p_values, equation
 
 # Function to fit and plot Cobb-Douglas model
 def fit_and_plot_cobb_douglas(x, y):
@@ -69,7 +69,7 @@ def fit_and_plot_cobb_douglas(x, y):
     plt.grid(True)
     st.pyplot(plt)
     
-    return mse, r2, intercept, coefficients, p_values
+    return mse, r2, intercept, coefficients, p_values, equation
 
 st.title('Time Series Trend Analysis')
 
@@ -91,32 +91,32 @@ if uploaded_file is not None:
         y = df[value_column].values
         
         st.subheader('Linear Regression (Degree 1)')
-        mse1, r2_1, intercept1, coef1, pval1 = fit_and_plot_regression(x, y, degree=1)
-        st.write(f"**Model:** Y = {intercept1} + {coef1[0]}*X")
+        mse1, r2_1, intercept1, coef1, pval1, equation1 = fit_and_plot_regression(x, y, degree=1)
+        st.write(f"**Model:** {equation1}")
         st.write(f"**Coefficients:** Intercept = {intercept1}, b = {coef1[0]}")
         st.write(f"**P-Values:** b = {pval1[0]}")
         st.write(f"MSE: {mse1:.2f}, R²: {r2_1:.2f}")
         st.write(f"**Interpretation:** The coefficient b = {coef1[0]} means that for each unit increase in X, Y increases by {coef1[0]} units.")
         
         st.subheader('Quadratic Regression (Degree 2)')
-        mse2, r2_2, intercept2, coef2, pval2 = fit_and_plot_regression(x, y, degree=2)
-        st.write(f"**Model:** Y = {intercept2} + {coef2[0]}*X + {coef2[1]}*X^2")
+        mse2, r2_2, intercept2, coef2, pval2, equation2 = fit_and_plot_regression(x, y, degree=2)
+        st.write(f"**Model:** {equation2}")
         st.write(f"**Coefficients:** Intercept = {intercept2}, b = {coef2[0]}, c = {coef2[1]}")
         st.write(f"**P-Values:** b = {pval2[0]}, c = {pval2[1]}")
         st.write(f"MSE: {mse2:.2f}, R²: {r2_2:.2f}")
         st.write(f"**Interpretation:** The coefficient c = {coef2[1]} indicates the curvature of the quadratic relationship.")
         
         st.subheader('Quartic Regression (Degree 4)')
-        mse4, r2_4, intercept4, coef4, pval4 = fit_and_plot_regression(x, y, degree=4)
-        st.write(f"**Model:** Y = {intercept4} + {coef4[0]}*X + {coef4[1]}*X^2 + {coef4[2]}*X^3 + {coef4[3]}*X^4")
+        mse4, r2_4, intercept4, coef4, pval4, equation4 = fit_and_plot_regression(x, y, degree=4)
+        st.write(f"**Model:** {equation4}")
         st.write(f"**Coefficients:** Intercept = {intercept4}, b = {coef4[0]}, c = {coef4[1]}, d = {coef4[2]}, e = {coef4[3]}")
         st.write(f"**P-Values:** b = {pval4[0]}, c = {pval4[1]}, d = {pval4[2]}, e = {pval4[3]}")
         st.write(f"MSE: {mse4:.2f}, R²: {r2_4:.2f}")
         st.write(f"**Interpretation:** The coefficient e = {coef4[3]} captures the highest order polynomial effect on Y.")
         
         st.subheader('Cobb-Douglas Regression')
-        mse_cd, r2_cd, intercept_cd, coef_cd, pval_cd = fit_and_plot_cobb_douglas(x, y)
-        st.write(f"**Model:** ln(Y) = {intercept_cd} + {coef_cd[0]}*ln(X)")
+        mse_cd, r2_cd, intercept_cd, coef_cd, pval_cd, equation_cd = fit_and_plot_cobb_douglas(x, y)
+        st.write(f"**Model:** {equation_cd}")
         st.write(f"**Coefficients:** Intercept = {intercept_cd}, b = {coef_cd[0]}")
         st.write(f"**P-Values:** b = {pval_cd[0]}")
         st.write(f"MSE: {mse_cd:.2f}, R²: {r2_cd:.2f}")
@@ -143,7 +143,7 @@ if uploaded_file is not None:
         - **Quadratic Regression (Degree 2)**: This model fits a parabola to the data. It can capture simple curvilinear trends and is more flexible than linear regression but may still miss more complex patterns.
         - **Quartic Regression (Degree 4)**: This model fits a quartic polynomial (degree 4) to the data. It can capture more complex trends and fluctuations. However, it may also overfit the data, especially if the true underlying trend is simpler.
         - **Cobb-Douglas Regression**: This model fits a Cobb-Douglas function to the data, which is useful for modeling relationships where growth rates are proportional. It is often used in economics but can be applied to other fields.
-        - **Model Selection**: Compare the MSE, R², intercepts, coefficients, and p-values of the models. Lower MSE and higher R² indicate a better fit. However, be cautious of overfitting with higher-degree polynomials. Choose the model that balances fit and simplicity.
+         - **Model Selection**: Compare the MSE, R², intercepts, coefficients, and p-values of the models. Lower MSE and higher R² indicate a better fit. However, be cautious of overfitting with higher-degree polynomials. Choose the model that balances fit and simplicity.
         """)
         
         st.markdown(f"**Best Model:** {best_model['Model']} Regression", unsafe_allow_html=True)
