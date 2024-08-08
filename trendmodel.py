@@ -104,7 +104,8 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
         
     return future_x, future_y_pred
 
-st.title('Time Series Trend Analysis')
+st.title('Trend Analysis Models App Built by SUMANECON-GKVK')
+st.subheader('Dedicated to Dr. Lalith Achoth')
 
 uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
 
