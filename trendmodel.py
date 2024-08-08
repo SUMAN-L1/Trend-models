@@ -155,7 +155,8 @@ def forecast_best_model(best_model, x, y, model_name, additional_params):
     return future_x, future_y_pred
 
 # Streamlit app
-st.title('Time Series Regression Analysis')
+st.title('Trend Analysis Models App Developed By SUMANECON-GKVK')
+st.subheader('Dedicated to Dr. Lalith Achoth')
 
 uploaded_file = st.file_uploader("Upload your CSV/XLSX file", type=['csv', 'xlsx'])
 
