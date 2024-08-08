@@ -22,11 +22,11 @@ def fit_and_plot_regression(x, y, degree):
     
     x_poly_const = sm.add_constant(x_poly)
     ols_model = sm.OLS(y, x_poly_const).fit()
-    p_values = ols_model.pvalues[1:]  # Skip intercept p-value
-    coefficients = model.coef_[1:]  # Skip intercept coefficient
-    intercept = model.intercept_
+    p_values = np.round(ols_model.pvalues[1:], 4)  # Skip intercept p-value
+    coefficients = np.round(model.coef_[1:], 4)  # Skip intercept coefficient
+    intercept = np.round(model.intercept_, 4)
     
-    equation = f"Y = {intercept:.2f} + " + " + ".join([f"{coef:.2f}*X^{i}" for i, coef in enumerate(coefficients, start=1)])
+    equation = f"Y = {intercept} + " + " + ".join([f"{coef}*X^{i}" for i, coef in enumerate(coefficients, start=1)])
     
     plt.figure()
     plt.scatter(x, y, color='blue', label='Actual')
@@ -54,10 +54,10 @@ def fit_and_plot_cobb_douglas(x, y):
     mse = mean_squared_error(y, y_pred)
     r2 = r2_score(y, y_pred)
     
-    intercept = model.params[0]
-    coefficients = model.params[1:]  # Skip intercept coefficient
-    p_values = model.pvalues[1:]  # Skip intercept p-value
-    equation = f"ln(Y) = {intercept:.2f} + {coefficients[0]:.2f}*ln(X)"
+    intercept = np.round(model.params[0], 4)
+    coefficients = np.round(model.params[1:], 4)  # Skip intercept coefficient
+    p_values = np.round(model.pvalues[1:], 4)  # Skip intercept p-value
+    equation = f"ln(Y) = {intercept} + {coefficients[0]}*ln(X)"
     
     plt.figure()
     plt.scatter(x, y, color='blue', label='Actual')
@@ -91,36 +91,36 @@ if uploaded_file is not None:
         y = df[value_column].values
         
         st.subheader('Linear Regression (Degree 1)')
-        st.write("**Model:** Y = a + bX")
         mse1, r2_1, intercept1, coef1, pval1 = fit_and_plot_regression(x, y, degree=1)
+        st.write(f"**Model:** Y = {intercept1} + {coef1[0]}*X")
+        st.write(f"**Coefficients:** Intercept = {intercept1}, b = {coef1[0]}")
+        st.write(f"**P-Values:** b = {pval1[0]}")
         st.write(f"MSE: {mse1:.2f}, R²: {r2_1:.2f}")
-        st.write(f"Intercept: {intercept1}")
-        st.write(f"Coefficients: {coef1}")
-        st.write(f"P-Values: {pval1}")
+        st.write(f"**Interpretation:** The coefficient b = {coef1[0]} means that for each unit increase in X, Y increases by {coef1[0]} units.")
         
         st.subheader('Quadratic Regression (Degree 2)')
-        st.write("**Model:** Y = a + bX + cX^2")
         mse2, r2_2, intercept2, coef2, pval2 = fit_and_plot_regression(x, y, degree=2)
+        st.write(f"**Model:** Y = {intercept2} + {coef2[0]}*X + {coef2[1]}*X^2")
+        st.write(f"**Coefficients:** Intercept = {intercept2}, b = {coef2[0]}, c = {coef2[1]}")
+        st.write(f"**P-Values:** b = {pval2[0]}, c = {pval2[1]}")
         st.write(f"MSE: {mse2:.2f}, R²: {r2_2:.2f}")
-        st.write(f"Intercept: {intercept2}")
-        st.write(f"Coefficients: {coef2}")
-        st.write(f"P-Values: {pval2}")
+        st.write(f"**Interpretation:** The coefficient c = {coef2[1]} indicates the curvature of the quadratic relationship.")
         
         st.subheader('Quartic Regression (Degree 4)')
-        st.write("**Model:** Y = a + bX + cX^2 + dX^3 + eX^4")
         mse4, r2_4, intercept4, coef4, pval4 = fit_and_plot_regression(x, y, degree=4)
+        st.write(f"**Model:** Y = {intercept4} + {coef4[0]}*X + {coef4[1]}*X^2 + {coef4[2]}*X^3 + {coef4[3]}*X^4")
+        st.write(f"**Coefficients:** Intercept = {intercept4}, b = {coef4[0]}, c = {coef4[1]}, d = {coef4[2]}, e = {coef4[3]}")
+        st.write(f"**P-Values:** b = {pval4[0]}, c = {pval4[1]}, d = {pval4[2]}, e = {pval4[3]}")
         st.write(f"MSE: {mse4:.2f}, R²: {r2_4:.2f}")
-        st.write(f"Intercept: {intercept4}")
-        st.write(f"Coefficients: {coef4}")
-        st.write(f"P-Values: {pval4}")
-
+        st.write(f"**Interpretation:** The coefficient e = {coef4[3]} captures the highest order polynomial effect on Y.")
+        
         st.subheader('Cobb-Douglas Regression')
-        st.write("**Model:** ln(Y) = a + b*ln(X)")
         mse_cd, r2_cd, intercept_cd, coef_cd, pval_cd = fit_and_plot_cobb_douglas(x, y)
+        st.write(f"**Model:** ln(Y) = {intercept_cd} + {coef_cd[0]}*ln(X)")
+        st.write(f"**Coefficients:** Intercept = {intercept_cd}, b = {coef_cd[0]}")
+        st.write(f"**P-Values:** b = {pval_cd[0]}")
         st.write(f"MSE: {mse_cd:.2f}, R²: {r2_cd:.2f}")
-        st.write(f"Intercept: {intercept_cd}")
-        st.write(f"Coefficients: {coef_cd}")
-        st.write(f"P-Values: {pval_cd}")
+        st.write(f"**Interpretation:** The coefficient b = {coef_cd[0]} represents the elasticity of Y with respect to X.")
         
         st.subheader('Model Comparison')
         comparison_data = {
