@@ -84,6 +84,20 @@ if uploaded_file is not None:
 
         st.write("Data Preview:", df.head())
 
+        # Model Equations Table
+        model_info = {
+            'Model': ['Linear Regression', 'Quadratic Regression', 'Quartic Regression', 'Cobb-Douglas Regression'],
+            'Equation': [
+                'Y = a + bX',
+                'Y = a + bX + cX^2',
+                'Y = a + bX + cX^2 + dX^3 + eX^4',
+                'ln(Y) = a + b*ln(X)'
+            ]
+        }
+        model_df = pd.DataFrame(model_info)
+        st.write("### Model Equations")
+        st.table(model_df)
+
         time_column = st.selectbox("Select Time Column", df.columns)
         value_column = st.selectbox("Select Value Column", df.columns)
 
@@ -143,7 +157,7 @@ if uploaded_file is not None:
         - **Quadratic Regression (Degree 2)**: This model fits a parabola to the data. It can capture simple curvilinear trends and is more flexible than linear regression but may still miss more complex patterns.
         - **Quartic Regression (Degree 4)**: This model fits a quartic polynomial (degree 4) to the data. It can capture more complex trends and fluctuations. However, it may also overfit the data, especially if the true underlying trend is simpler.
         - **Cobb-Douglas Regression**: This model fits a Cobb-Douglas function to the data, which is useful for modeling relationships where growth rates are proportional. It is often used in economics but can be applied to other fields.
-         - **Model Selection**: Compare the MSE, R², intercepts, coefficients, and p-values of the models. Lower MSE and higher R² indicate a better fit. However, be cautious of overfitting with higher-degree polynomials. Choose the model that balances fit and simplicity.
+        - **Model Selection**: Compare the MSE, R², intercepts, coefficients, and p-values of the models. Lower MSE and higher R² indicate a better fit. However, be cautious of overfitting with higher-degree polynomials. Choose the model that balances fit and simplicity.
         """)
         
         st.markdown(f"**Best Model:** {best_model['Model']} Regression", unsafe_allow_html=True)
