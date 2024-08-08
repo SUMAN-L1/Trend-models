@@ -2,10 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
-import seaborn as sns
+from scipy.optimize import least_squares
 
 def fit_and_plot_regression(x, y, degree):
     # Fit polynomial regression
@@ -69,8 +68,6 @@ def fit_and_plot_exponential(x, y):
     def residuals(params, x, y):
         return y - exponential_model(params, x)
     
-    from scipy.optimize import least_squares
-    log_y = np.log(y)
     def exp_fit(params):
         return residuals(params, x, y)
     
@@ -104,7 +101,6 @@ def fit_and_plot_modified_exponential(x, y):
     def residuals(params, x, y):
         return y - modified_exponential_model(params, x)
     
-    from scipy.optimize import least_squares
     def mod_exp_fit(params):
         return residuals(params, x, y)
     
@@ -302,3 +298,6 @@ if uploaded_file is not None:
         st.write("Forecast for the next 3 periods:")
         forecast_df = pd.DataFrame({'Period': future_x.flatten(), 'Forecast': future_y_pred})
         st.write(forecast_df)
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
