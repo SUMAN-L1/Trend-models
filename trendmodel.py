@@ -216,12 +216,23 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
 
 # Streamlit App
 st.title("Regression Model Fitting and Forecasting")
-uploaded_file = st.file_uploader("Upload a CSV file", type=["csv","xlsx"])
+import streamlit as st
+import pandas as pd
+
+uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
     try:
-        data = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
+        # Determine file type and read accordingly
+        if uploaded_file.name.endswith('.csv'):
+            data = pd.read_csv(uploaded_file, encoding='ISO-8859-1', on_bad_lines='skip')  # Skips malformed lines
+        else:
+            data = pd.read_excel(uploaded_file)
+
         st.write("Data Preview:", data.head())
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
         # Assuming the first column is the independent variable and the second is the dependent variable
         independent_var = data.columns[0]
