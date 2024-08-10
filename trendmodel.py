@@ -185,120 +185,90 @@ if uploaded_file is not None:
             df = pd.read_excel(uploaded_file)
 
         st.write("Data Preview:", df.head())
+        
+        # Select columns for independent and dependent variables
+        independent_var = st.selectbox('Select the Time/Year column:', df.columns)
+        dependent_var = st.selectbox('Select the dependent variable column:', df.columns)
+
+        # Extract columns
+        x = df[independent_var].values
+        y = df[dependent_var].values
 
         # Model Equations Table
         model_info = {
             'Model': ['Linear', 'Quadratic', 'Quartic', 'Cobb-Douglas', 'Exponential', 'Modified Exponential'],
-            'Equation': [
-                'Y = a + bX',
-                'Y = a + bX + cX^2',
-                'Y = a + bX + cX^2 + dX^3 + eX^4',
-                'ln(Y) = a + b*ln(X)',
-                'Y = a * e^(b * X)',
-                'Y = a * e^(b * X) + c'
-            ]
+            'Equation': [],
+            'MSE': [],
+            'R2': []
         }
-        model_info_df = pd.DataFrame(model_info)
-        st.write("Model Equations:")
-        st.table(model_info_df)
-        
-        # Extract columns
-        x = df.iloc[:, 0].values
-        y = df.iloc[:, 1].values
 
         # Linear Regression
-        st.subheader('Linear Regression')
-        mse1, r2_1, intercept1, coef1, pval1, equation1, model1, x_poly1 = fit_and_plot_regression(x, y, 1)
-        st.write(f"**Model:** {equation1}")
-        st.write(f"**Coefficients:** Intercept = {intercept1}, b = {coef1[0]}")
-        st.write(f"**P-Values:** b = {pval1[0]}")
-        st.write(f"MSE: {mse1:.2f}, R²: {r2_1:.2f}")
-        st.write(f"**Interpretation:** The coefficient b = {coef1[0]} indicates the rate of change in Y for each unit change in X.")
+        linear_mse, linear_r2, linear_intercept, linear_coefficients, linear_p_values, linear_equation, linear_model, linear_x_poly = fit_and_plot_regression(x, y, degree=1)
+        model_info['Equation'].append(linear_equation)
+        model_info['MSE'].append(linear_mse)
+        model_info['R2'].append(linear_r2)
         
         # Quadratic Regression
-        st.subheader('Quadratic Regression')
-        mse2, r2_2, intercept2, coef2, pval2, equation2, model2, x_poly2 = fit_and_plot_regression(x, y, 2)
-        st.write(f"**Model:** {equation2}")
-        st.write(f"**Coefficients:** Intercept = {intercept2}, b = {coef2[0]}, c = {coef2[1]}")
-        st.write(f"**P-Values:** b = {pval2[0]}, c = {pval2[1]}")
-        st.write(f"MSE: {mse2:.2f}, R²: {r2_2:.2f}")
-        st.write(f"**Interpretation:** The coefficient b = {coef2[0]} captures the linear effect, and c = {coef2[1]} represents the curvature effect.")
-        
+        quadratic_mse, quadratic_r2, quadratic_intercept, quadratic_coefficients, quadratic_p_values, quadratic_equation, quadratic_model, quadratic_x_poly = fit_and_plot_regression(x, y, degree=2)
+        model_info['Equation'].append(quadratic_equation)
+        model_info['MSE'].append(quadratic_mse)
+        model_info['R2'].append(quadratic_r2)
+
         # Quartic Regression
-        st.subheader('Quartic Regression')
-        mse4, r2_4, intercept4, coef4, pval4, equation4, model4, x_poly4 = fit_and_plot_regression(x, y, 4)
-        st.write(f"**Model:** {equation4}")
-        st.write(f"**Coefficients:** Intercept = {intercept4}, b = {coef4[0]}, c = {coef4[1]}, d = {coef4[2]}, e = {coef4[3]}")
-        st.write(f"**P-Values:** b = {pval4[0]}, c = {pval4[1]}, d = {pval4[2]}, e = {pval4[3]}")
-        st.write(f"MSE: {mse4:.2f}, R²: {r2_4:.2f}")
-        st.write(f"**Interpretation:** The coefficient e = {coef4[3]} captures the highest order polynomial effect on Y.")
-        
+        quartic_mse, quartic_r2, quartic_intercept, quartic_coefficients, quartic_p_values, quartic_equation, quartic_model, quartic_x_poly = fit_and_plot_regression(x, y, degree=4)
+        model_info['Equation'].append(quartic_equation)
+        model_info['MSE'].append(quartic_mse)
+        model_info['R2'].append(quartic_r2)
+
         # Cobb-Douglas Regression
-        st.subheader('Cobb-Douglas Regression')
-        mse_cd, r2_cd, intercept_cd, coef_cd, pval_cd, equation_cd, model_cd, x_log, y_log = fit_and_plot_cobb_douglas(x, y)
-        st.write(f"**Model:** {equation_cd}")
-        st.write(f"**Coefficients:** Intercept = {intercept_cd}, b = {coef_cd[0]}")
-        st.write(f"**P-Values:** b = {pval_cd[0]}")
-        st.write(f"MSE: {mse_cd:.2f}, R²: {r2_cd:.2f}")
-        st.write(f"**Interpretation:** The coefficient b = {coef_cd[0]} represents the elasticity of Y with respect to X.")
+        cobb_douglas_mse, cobb_douglas_r2, cobb_douglas_intercept, cobb_douglas_coefficients, cobb_douglas_p_values, cobb_douglas_equation, cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log = fit_and_plot_cobb_douglas(x, y)
+        model_info['Equation'].append(cobb_douglas_equation)
+        model_info['MSE'].append(cobb_douglas_mse)
+        model_info['R2'].append(cobb_douglas_r2)
         
         # Exponential Regression
-        st.subheader('Exponential Regression')
-        mse_exp, r2_exp, a_exp, b_exp, equation_exp = fit_and_plot_exponential(x, y)
-        st.write(f"**Model:** {equation_exp}")
-        st.write(f"**Coefficients:** a = {a_exp}, b = {b_exp}")
-        st.write(f"MSE: {mse_exp:.2f}, R²: {r2_exp:.2f}")
-        st.write(f"**Interpretation:** The coefficient b = {b_exp} represents the growth rate of Y with respect to X.")
-        
+        exponential_mse, exponential_r2, exponential_a, exponential_b, exponential_equation = fit_and_plot_exponential(x, y)
+        model_info['Equation'].append(exponential_equation)
+        model_info['MSE'].append(exponential_mse)
+        model_info['R2'].append(exponential_r2)
+
         # Modified Exponential Regression
-        st.subheader('Modified Exponential Regression')
-        mse_mod_exp, r2_mod_exp, a_mod_exp, b_mod_exp, c_mod_exp, equation_mod_exp = fit_and_plot_modified_exponential(x, y)
-        st.write(f"**Model:** {equation_mod_exp}")
-        st.write(f"**Coefficients:** a = {a_mod_exp}, b = {b_mod_exp}, c = {c_mod_exp}")
-        st.write(f"MSE: {mse_mod_exp:.2f}, R²: {r2_mod_exp:.2f}")
-        st.write(f"**Interpretation:** The coefficient b = {b_mod_exp} represents the growth rate, and c = {c_mod_exp} is a constant offset.")
-        
-        # Final Results Table
-        st.subheader('Model Comparison')
-        comparison_data = {
-            'Model': ['Linear', 'Quadratic', 'Quartic', 'Cobb-Douglas', 'Exponential', 'Modified Exponential'],
-            'MSE': [mse1, mse2, mse4, mse_cd, mse_exp, mse_mod_exp],
-            'R²': [r2_1, r2_2, r2_4, r2_cd, r2_exp, r2_mod_exp],
-            'Intercept': [intercept1, intercept2, intercept4, intercept_cd, np.nan, np.nan],
-            'Coefficients': [coef1, coef2, coef4, coef_cd, f'a = {a_exp}, b = {b_exp}', f'a = {a_mod_exp}, b = {b_mod_exp}, c = {c_mod_exp}'],
-            'P-Values': [pval1, pval2, pval4, pval_cd, np.nan, np.nan]
-        }
-        comparison_df = pd.DataFrame(comparison_data)
-        st.table(comparison_df)
-        
-        # Identify the best model
-        best_model_idx = comparison_df['R²'].idxmax()
-        best_model = comparison_df.iloc[best_model_idx]
-        best_model_name = comparison_df['Model'][best_model_idx]
-        
-        # Forecasting
+        mod_exp_mse, mod_exp_r2, mod_exp_a, mod_exp_b, mod_exp_c, mod_exp_equation = fit_and_plot_modified_exponential(x, y)
+        model_info['Equation'].append(mod_exp_equation)
+        model_info['MSE'].append(mod_exp_mse)
+        model_info['R2'].append(mod_exp_r2)
+
+        # Display model info
+        model_df = pd.DataFrame(model_info)
+        st.write("Model Equations and Metrics:")
+        st.write(model_df)
+
+        # Determine the best model
+        best_model_idx = model_df['R2'].idxmax()
+        best_model_name = model_df.iloc[best_model_idx]['Model']
+        st.write(f"**Best Model:** {best_model_name}")
+
+        # Forecast with the best model
+        additional_params = None
         if best_model_name == 'Linear':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Linear', additional_params=(model1, x_poly1))
+            additional_params = (linear_model, linear_x_poly)
         elif best_model_name == 'Quadratic':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Quadratic', additional_params=(model2, x_poly2))
+            additional_params = (quadratic_model, quadratic_x_poly)
         elif best_model_name == 'Quartic':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Quartic', additional_params=(model4, x_poly4))
+            additional_params = (quartic_model, quartic_x_poly)
         elif best_model_name == 'Cobb-Douglas':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Cobb-Douglas', additional_params=(model_cd, x_log, y_log))
+            additional_params = (cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log)
         elif best_model_name == 'Exponential':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Exponential', additional_params=(a_exp, b_exp))
+            additional_params = (exponential_a, exponential_b)
         elif best_model_name == 'Modified Exponential':
-            future_x, future_y_pred = forecast_best_model(best_model, x, y, 'Modified Exponential', additional_params=(a_mod_exp, b_mod_exp, c_mod_exp))
-        
-        st.subheader('Forecast for Next 3 Periods')
-        forecast_df = pd.DataFrame({
-            'Future Time': future_x.flatten(),  # Ensure 1D array
-            'Forecasted Value': future_y_pred.flatten()  # Ensure 1D array
-        })
+            additional_params = (mod_exp_a, mod_exp_b, mod_exp_c)
+
+        future_x, future_y_pred = forecast_best_model(best_model_name, x, y, best_model_name, additional_params)
+
+        # Display forecast
+        forecast_df = pd.DataFrame({independent_var: future_x, dependent_var: future_y_pred})
+        st.write("Forecast for the Next 3 Time Points:")
         st.write(forecast_df)
 
-        st.write(f"**Best Model:** {best_model_name} Regression")
-        st.markdown(f"<span style='color: darkorange; font-weight: bold;'>Best Model based on R²: {best_model_name} Regression</span>", unsafe_allow_html=True)
-
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error processing file: {e}")
