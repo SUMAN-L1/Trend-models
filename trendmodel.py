@@ -158,46 +158,37 @@ def fit_and_plot_cobb_douglas(x, y):
     return mse, r2, intercept, coefficients, p_values, equation, model, x_log, y_log
 
 # Function to forecast using the best model
-def forecast_best_model(best_model, x, y, model_type, additional_params=None):
+def forecast_best_model(model_type, x, y, best_model, additional_params):
+    # Forecast future values based on the best model
     if model_type == 'Linear':
-        model, x_poly = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=1).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
+        def linear_model(x, a, b):
+            return a + b * x
+        future_y_pred = linear_model(future_x, *additional_params)
         
     elif model_type == 'Quadratic':
-        model, x_poly = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=2).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
+        def quadratic_model(x, a, b, c):
+            return a + b * x + c * x**2
+        future_y_pred = quadratic_model(future_x, *additional_params)
         
     elif model_type == 'Quartic':
-        model, x_poly = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=4).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
-        
-    elif model_type == 'Cobb-Douglas':
-        model, x_log, y_log = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_log = np.log(future_x)
-        future_y_log_pred = model.predict(sm.add_constant(future_x_log.reshape(-1, 1)))  # Ensure future_x_log is 2D
-        future_y_pred = np.exp(future_y_log_pred)
+        def quartic_model(x, a, b, c, d, e):
+            return a + b * x + c * x**2 + d * x**3 + e * x**4
+        future_y_pred = quartic_model(future_x, *additional_params)
         
     elif model_type == 'Exponential':
-        a, b = additional_params
         last_x = x[-1]
-                future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x = np.array([last_x + i for i in range(1, 4)])
         def exponential_model(x, a, b):
             return a * np.exp(b * x)
         future_y_pred = exponential_model(future_x, *additional_params)
         
     elif model_type == 'Modified Exponential':
-        a, b, c = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
         def modified_exponential_model(x, a, b, c):
@@ -205,14 +196,21 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
         future_y_pred = modified_exponential_model(future_x, *additional_params)
         
     elif model_type == 'Quadratic B':
-        a, b, c = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
         def quadratic_b_model(x, a, b, c):
             return a + b * x - c * x**2
         future_y_pred = quadratic_b_model(future_x, *additional_params)
         
+    elif model_type == 'Cobb-Douglas':
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        def cobb_douglas_model(x, a, b):
+            return np.exp(a + b * np.log(x))
+        future_y_pred = cobb_douglas_model(future_x, *additional_params)
+        
     return future_x, future_y_pred
+
 
 # Streamlit app layout
 st.title('Regression Models Analysis')
