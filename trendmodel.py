@@ -221,7 +221,7 @@ import pandas as pd
 
 uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
     
-    if uploaded_file is not None:
+if uploaded_file is not None:
         try:
             # Determine file type and read accordingly
             if uploaded_file.name.endswith('.csv'):
