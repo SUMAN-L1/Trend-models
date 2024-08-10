@@ -1,316 +1,318 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.metrics import mean_squared_error
-from scipy.optimize import curve_fit
+from sklearn.metrics import mean_squared_error, r2_score
 import statsmodels.api as sm
+from scipy.optimize import curve_fit
+import io
 
-# Function Definitions
-
-def fit_and_plot_regression(x, y, degree):
-    poly = PolynomialFeatures(degree)
-    x_poly = poly.fit_transform(x.reshape(-1, 1))
-    model = LinearRegression().fit(x_poly, y)
-
-    y_pred = model.predict(x_poly)
-    mse = mean_squared_error(y, y_pred)
-    r2 = model.score(x_poly, y)
-
-    x_range = np.linspace(x.min(), x.max(), 100)
-    x_range_poly = poly.transform(x_range.reshape(-1, 1))
-    y_range_pred = model.predict(x_range_poly)
-
-    # Plotting
-    plt.figure()
-    plt.scatter(x, y, color='blue', label='Data')
-    plt.plot(x_range, y_range_pred, color='red', label=f'Fit Degree {degree}')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title(f'Polynomial Degree {degree} Regression')
-    plt.legend()
-    st.pyplot(plt)
-
-    intercept = model.intercept_
-    coefficients = model.coef_
-    equation = f"y = {intercept:.4f} + " + " + ".join([f"{coeff:.4f}*x^{i}" for i, coeff in enumerate(coefficients[1:], start=1)])
-    
-    # Fitting the model with statsmodels for p-values
-    x_poly_const = sm.add_constant(x_poly)
-    sm_model = sm.OLS(y, x_poly_const).fit()
-    p_values = sm_model.pvalues
-
-    return mse, r2, intercept, coefficients, p_values, equation, model, x_poly
-
+# Function to fit and plot exponential model
 def fit_and_plot_exponential(x, y):
-    def exponential_func(x, a, b):
+    def exponential_model(x, a, b):
         return a * np.exp(b * x)
-
-    params, _ = curve_fit(exponential_func, x, y, p0=(1, 0.01))
-    y_pred = exponential_func(x, *params)
+    
+    # Fit model
+    popt, _ = curve_fit(exponential_model, x, y, p0=(1, 0.1))
+    a, b = popt
+    
+    y_pred = exponential_model(x, a, b)
+    
     mse = mean_squared_error(y, y_pred)
-    r2 = 1 - np.sum((y - y_pred) ** 2) / np.sum((y - np.mean(y)) ** 2)
-
-    x_range = np.linspace(x.min(), x.max(), 100)
-    y_range_pred = exponential_func(x_range, *params)
-
-    # Plotting
+    r2 = r2_score(y, y_pred)
+    
+    equation = f"Y = {a:.4f} * e^({b:.4f} * X)"
+    
     plt.figure()
-    plt.scatter(x, y, color='blue', label='Data')
-    plt.plot(x_range, y_range_pred, color='red', label='Exponential Fit')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Exponential Regression')
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label='Estimated (Exponential)')
+    plt.title(f'Exponential Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
     plt.legend()
+    plt.grid(True)
     st.pyplot(plt)
-
-    a, b = params
-    equation = f"y = {a:.4f} * exp({b:.4f} * x)"
-
+    
     return mse, r2, a, b, equation
 
+# Function to fit and plot modified exponential model
 def fit_and_plot_modified_exponential(x, y):
-    def modified_exponential_func(x, a, b, c):
+    def modified_exponential_model(x, a, b, c):
         return a * np.exp(b * x) + c
-
-    params, _ = curve_fit(modified_exponential_func, x, y, p0=(1, 0.01, 1))
-    y_pred = modified_exponential_func(x, *params)
+    
+    # Fit model
+    popt, _ = curve_fit(modified_exponential_model, x, y, p0=(1, 0.1, 1))
+    a, b, c = popt
+    
+    y_pred = modified_exponential_model(x, a, b, c)
+    
     mse = mean_squared_error(y, y_pred)
-    r2 = 1 - np.sum((y - y_pred) ** 2) / np.sum((y - np.mean(y)) ** 2)
-
-    x_range = np.linspace(x.min(), x.max(), 100)
-    y_range_pred = modified_exponential_func(x_range, *params)
-
-    # Plotting
+    r2 = r2_score(y, y_pred)
+    
+    equation = f"Y = {a:.4f} * e^({b:.4f} * X) + {c:.4f}"
+    
     plt.figure()
-    plt.scatter(x, y, color='blue', label='Data')
-    plt.plot(x_range, y_range_pred, color='red', label='Modified Exponential Fit')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('Modified Exponential Regression')
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label='Estimated (Modified Exponential)')
+    plt.title(f'Modified Exponential Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
     plt.legend()
+    plt.grid(True)
     st.pyplot(plt)
-
-    a, b, c = params
-    equation = f"y = {a:.4f} * exp({b:.4f} * x) + {c:.4f}"
-
+    
     return mse, r2, a, b, c, equation
 
+# Function to fit and plot regression models
+def fit_and_plot_regression(x, y, degree):
+    polynomial_features = PolynomialFeatures(degree=degree)
+    x_poly = polynomial_features.fit_transform(x.reshape(-1, 1))
+    
+    model = LinearRegression()
+    model.fit(x_poly, y)
+    
+    y_pred = model.predict(x_poly)
+    
+    mse = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    
+    x_poly_const = sm.add_constant(x_poly)
+    ols_model = sm.OLS(y, x_poly_const).fit()
+    p_values = np.round(ols_model.pvalues[1:], 4)  # Skip intercept p-value
+    coefficients = np.round(model.coef_[1:], 4)  # Skip intercept coefficient
+    intercept = np.round(model.intercept_, 4)
+    
+    equation = f"Y = {intercept} + " + " + ".join([f"{coef}*X^{i}" for i, coef in enumerate(coefficients, start=1)])
+    
+    plt.figure()
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label=f'Estimated (degree {degree})')
+    plt.title(f'Degree {degree} Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    st.pyplot(plt)
+    
+    return mse, r2, intercept, coefficients, p_values, equation, model, x_poly
+
+# Function to fit and plot quadratic B model
+def fit_and_plot_quadratic_b(x, y):
+    def quadratic_b_model(x, a, b, c):
+        return a + b * x - c * x**2
+    
+    # Fit model
+    popt, _ = curve_fit(quadratic_b_model, x, y, p0=(1, 1, 1))
+    a, b, c = popt
+    
+    y_pred = quadratic_b_model(x, a, b, c)
+    
+    mse = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    
+    equation = f"Y = {a:.4f} + {b:.4f} * X - {c:.4f} * X^2"
+    
+    plt.figure()
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label='Estimated (Quadratic B)')
+    plt.title(f'Quadratic B Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    st.pyplot(plt)
+    
+    return mse, r2, a, b, c, equation
+
+# Function to fit and plot Cobb-Douglas model
 def fit_and_plot_cobb_douglas(x, y):
     x_log = np.log(x)
     y_log = np.log(y)
-
-    model = LinearRegression().fit(x_log.reshape(-1, 1), y_log)
-
-    y_log_pred = model.predict(x_log.reshape(-1, 1))
-    mse = mean_squared_error(y_log, y_log_pred)
-    r2 = model.score(x_log.reshape(-1, 1), y_log)
-
-    x_range = np.linspace(x_log.min(), x_log.max(), 100)
-    y_log_range_pred = model.predict(x_range.reshape(-1, 1))
-    y_range_pred = np.exp(y_log_range_pred)
-
-    # Plotting
-    plt.figure()
-    plt.scatter(x_log, y_log, color='blue', label='Log Data')
-    plt.plot(x_range, y_log_range_pred, color='red', label='Cobb-Douglas Fit (Log-Log)')
-    plt.xlabel('log(X)')
-    plt.ylabel('log(Y)')
-    plt.title('Cobb-Douglas Regression')
-    plt.legend()
-    st.pyplot(plt)
-
-    intercept = model.intercept_
-    coefficient = model.coef_[0]
-    equation = f"log(y) = {intercept:.4f} + {coefficient:.4f}*log(x)"
-
-    # Interpretation as Cobb-Douglas
-    a = np.exp(intercept)
-    b = coefficient
-
-    return mse, r2, intercept, [b], model.pvalues if hasattr(model, 'pvalues') else None, equation, model, x_log, y_log
-
-def fit_and_plot_quadratic_b(x, y):
-    x_squared = x**2
-    X_design = np.vstack((x, x_squared)).T
-    X_design_const = sm.add_constant(X_design)
-
-    model = sm.OLS(y, X_design_const).fit()
-    y_pred = model.predict(X_design_const)
-
+    
+    x_log_const = sm.add_constant(x_log.reshape(-1, 1))  # Ensure x_log is 2D
+    model = sm.OLS(y_log, x_log_const).fit()
+    
+    y_pred_log = model.predict(x_log_const)
+    y_pred = np.exp(y_pred_log)
+    
     mse = mean_squared_error(y, y_pred)
-    r2 = model.rsquared
-    intercept = model.params[0]
-    coefficients = model.params[1:]
-    p_values = model.pvalues
-
-    x_range = np.linspace(x.min(), x.max(), 100)
-    x_range_squared = x_range**2
-    x_range_design = np.vstack((x_range, x_range_squared)).T
-    x_range_design_const = sm.add_constant(x_range_design)
-    y_range_pred = model.predict(x_range_design_const)
-
-    # Plotting
+    r2 = r2_score(y, y_pred)
+    
+    intercept = np.round(model.params[0], 4)
+    coefficients = np.round(model.params[1:], 4)  # Skip intercept coefficient
+    p_values = np.round(model.pvalues[1:], 4)  # Skip intercept p-value
+    equation = f"ln(Y) = {intercept} + {coefficients[0]}*ln(X)"
+    
     plt.figure()
-    plt.scatter(x, y, color='blue', label='Data')
-    plt.plot(x_range, y_range_pred, color='red', label='QuadraticB Fit')
-    plt.xlabel('X')
-    plt.ylabel('Y')
-    plt.title('QuadraticB Regression')
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label='Estimated (Cobb-Douglas)')
+    plt.title(f'Cobb-Douglas Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
     plt.legend()
+    plt.grid(True)
     st.pyplot(plt)
+    
+    return mse, r2, intercept, coefficients, p_values, equation, model, x_log, y_log
 
-    equation = f"y = {intercept:.4f} + {coefficients[0]:.4f}*x - {coefficients[1]:.4f}*x^2"
-
-    return mse, r2, intercept, coefficients, p_values, equation, model
-
-def forecast_best_model(model_name, x, y, model_type, additional_params=None):
-    if model_type in ['Linear', 'Quadratic', 'Quartic']:
+# Function to forecast using the best model
+def forecast_best_model(best_model, x, y, model_type, additional_params=None):
+    if model_type == 'Linear':
         model, x_poly = additional_params
-        last_x = x_poly[-1, :]
-        future_x_poly = np.vstack([last_x + i for i in range(1, 4)])
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x_poly = PolynomialFeatures(degree=1).fit_transform(future_x.reshape(-1, 1))
+        future_y_pred = model.predict(future_x_poly)
+        
+    elif model_type == 'Quadratic':
+        model, x_poly = additional_params
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x_poly = PolynomialFeatures(degree=2).fit_transform(future_x.reshape(-1, 1))
+        future_y_pred = model.predict(future_x_poly)
+        
+    elif model_type == 'Quartic':
+        model, x_poly = additional_params
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x_poly = PolynomialFeatures(degree=4).fit_transform(future_x.reshape(-1, 1))
         future_y_pred = model.predict(future_x_poly)
         
     elif model_type == 'Cobb-Douglas':
         model, x_log, y_log = additional_params
-        future_x_log = np.log(x[-1] + np.arange(1, 4))
-        future_y_log_pred = model.predict(future_x_log.reshape(-1, 1))
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x_log = np.log(future_x)
+        future_y_log_pred = model.predict(sm.add_constant(future_x_log.reshape(-1, 1)))  # Ensure future_x_log is 2D
         future_y_pred = np.exp(future_y_log_pred)
         
     elif model_type == 'Exponential':
         a, b = additional_params
         last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_y_pred = a * np.exp(b * future_x)
+                future_x = np.array([last_x + i for i in range(1, 4)])
+        def exponential_model(x, a, b):
+            return a * np.exp(b * x)
+        future_y_pred = exponential_model(future_x, *additional_params)
         
     elif model_type == 'Modified Exponential':
         a, b, c = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
-        future_y_pred = a * np.exp(b * future_x) + c
-
-    elif model_type == 'QuadraticB':
-        model = additional_params
+        def modified_exponential_model(x, a, b, c):
+            return a * np.exp(b * x) + c
+        future_y_pred = modified_exponential_model(future_x, *additional_params)
+        
+    elif model_type == 'Quadratic B':
+        a, b, c = additional_params
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_squared = future_x**2
-        future_x_reshaped = np.vstack((future_x, future_x_squared)).T
-        future_x_reshaped_const = sm.add_constant(future_x_reshaped)
-        future_y_pred = model.predict(future_x_reshaped_const)
-
+        def quadratic_b_model(x, a, b, c):
+            return a + b * x - c * x**2
+        future_y_pred = quadratic_b_model(future_x, *additional_params)
+        
     return future_x, future_y_pred
 
-# Streamlit App
+# Streamlit app layout
+st.title('Regression Models Analysis')
 
-def main():
-    st.title("Regression Analysis")
+st.write("### Model Equations")
+st.write(pd.DataFrame({
+    'Model': ['Linear', 'Quadratic', 'Quartic', 'Exponential', 'Modified Exponential', 'Quadratic B', 'Cobb-Douglas'],
+    'Equation': [
+        'Y = a + b*X',
+        'Y = a + b*X + c*X^2',
+        'Y = a + b*X + c*X^2 + d*X^3 + e*X^4',
+        'Y = a * e^(b * X)',
+        'Y = a * e^(b * X) + c',
+        'Y = a + b*X - c*X^2',
+        'ln(Y) = a + b*ln(X)'
+    ]
+}))
 
-    uploaded_file = st.file_uploader("Upload CSV, Excel (.xlsx, .xls) file", type=['csv', 'xlsx', 'xls'])
+uploaded_file = st.file_uploader("Choose an Excel file", type=["csv", "xlsx", "xls"])
+
+if uploaded_file:
+    if uploaded_file.name.endswith('.csv'):
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
+    else:
+        df = pd.read_excel(uploaded_file, engine='openpyxl')
+
+    st.write("### Data Overview")
+    st.write(df.head())
     
-    if uploaded_file is not None:
-        try:
-            # Read data
-            if uploaded_file.name.endswith(('xlsx', 'xls')):
-                df = pd.read_excel(uploaded_file)
-            else:
-                df = pd.read_csv(uploaded_file)
+    st.write("### Select Columns")
+    year_col = st.selectbox("Select Year Column", df.columns)
+    y_col = st.selectbox("Select Dependent Variable Column", df.columns)
+    
+    x = df[year_col].values
+    y = df[y_col].values
+    
+    # Linear Regression
+    st.write("### Linear Regression")
+    mse_linear, r2_linear, intercept_linear, coef_linear, p_value_linear, equation_linear, model_linear, x_poly_linear = fit_and_plot_regression(x, y, 1)
+    
+    # Quadratic Regression
+    st.write("### Quadratic Regression")
+    mse_quadratic, r2_quadratic, intercept_quadratic, coef_quadratic, p_value_quadratic, equation_quadratic, model_quadratic, x_poly_quadratic = fit_and_plot_regression(x, y, 2)
+    
+    # Quartic Regression
+    st.write("### Quartic Regression")
+    mse_quartic, r2_quartic, intercept_quartic, coef_quartic, p_value_quartic, equation_quartic, model_quartic, x_poly_quartic = fit_and_plot_regression(x, y, 4)
+    
+    # Exponential Regression
+    st.write("### Exponential Regression")
+    mse_exponential, r2_exponential, a_exp, b_exp, equation_exp = fit_and_plot_exponential(x, y)
+    
+    # Modified Exponential Regression
+    st.write("### Modified Exponential Regression")
+    mse_mod_exp, r2_mod_exp, a_mod_exp, b_mod_exp, c_mod_exp, equation_mod_exp = fit_and_plot_modified_exponential(x, y)
+    
+    # Quadratic B Regression
+    st.write("### Quadratic B Regression")
+    mse_quad_b, r2_quad_b, a_quad_b, b_quad_b, c_quad_b, equation_quad_b = fit_and_plot_quadratic_b(x, y)
+    
+    # Cobb-Douglas Regression
+    st.write("### Cobb-Douglas Regression")
+    mse_cobb_douglas, r2_cobb_douglas, intercept_cobb_douglas, coef_cobb_douglas, p_value_cobb_douglas, equation_cobb_douglas, model_cobb_douglas, x_log, y_log = fit_and_plot_cobb_douglas(x, y)
 
-            st.write("Data preview:")
-            st.write(df.head())
-            
-            # Assuming the first two columns are X and Y
-            x = df.iloc[:, 0].values
-            y = df.iloc[:, 1].values
-            
-            # Apply different models
-            st.subheader('Linear Regression')
-            mse_linear, r2_linear, intercept_linear, coeff_linear, p_values_linear, eq_linear, linear_model, linear_x_poly = fit_and_plot_regression(x, y, 1)
-            st.write(f"R2: {r2_linear:.4f}, Intercept: {intercept_linear:.4f}, Coefficients: {coeff_linear[1]:.4f}")
-            st.write(f"Equation: {eq_linear}")
-            
-            st.subheader('Quadratic Regression')
-            mse_quadratic, r2_quadratic, intercept_quadratic, coeff_quadratic, p_values_quadratic, eq_quadratic, quadratic_model, quadratic_x_poly = fit_and_plot_regression(x, y, 2)
-            st.write(f"R2: {r2_quadratic:.4f}, Intercept: {intercept_quadratic:.4f}, Coefficients: {coeff_quadratic[1]:.4f}, {coeff_quadratic[2]:.4f}")
-            st.write(f"Equation: {eq_quadratic}")
-            
-            st.subheader('Quartic Regression')
-            mse_quartic, r2_quartic, intercept_quartic, coeff_quartic, p_values_quartic, eq_quartic, quartic_model, quartic_x_poly = fit_and_plot_regression(x, y, 4)
-            st.write(f"R2: {r2_quartic:.4f}, Intercept: {intercept_quartic:.4f}, Coefficients: {', '.join([f'{c:.4f}' for c in coeff_quartic[1:]])}")
-            st.write(f"Equation: {eq_quartic}")
+    # Determine best model based on MSE and R^2
+    models = {
+        'Linear': (mse_linear, r2_linear),
+        'Quadratic': (mse_quadratic, r2_quadratic),
+        'Quartic': (mse_quartic, r2_quartic),
+        'Exponential': (mse_exponential, r2_exponential),
+        'Modified Exponential': (mse_mod_exp, r2_mod_exp),
+        'Quadratic B': (mse_quad_b, r2_quad_b),
+        'Cobb-Douglas': (mse_cobb_douglas, r2_cobb_douglas)
+    }
+    
+    best_model = min(models, key=lambda k: models[k][0])  # Minimum MSE
+    best_r2_model = max(models, key=lambda k: models[k][1])  # Maximum R^2
 
-            st.subheader('Cobb-Douglas Regression')
-            mse_cobb_douglas, r2_cobb_douglas, intercept_cobb_douglas, coeff_cobb_douglas, p_values_cobb_douglas, eq_cobb_douglas, cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log = fit_and_plot_cobb_douglas(x, y)
-            st.write(f"R2: {r2_cobb_douglas:.4f}, Intercept: {intercept_cobb_douglas:.4f}, Coefficient: {coeff_cobb_douglas[0]:.4f}")
-            st.write(f"Equation: {eq_cobb_douglas}")
+    # Highlight best model based on both criteria
+    st.markdown(f"<h1 style='color: orange; font-size: 30px;'>Best Model Based on MSE and R²: {best_model}</h1>", unsafe_allow_html=True)
 
-            st.subheader('Exponential Regression')
-            mse_exponential, r2_exponential, a_exponential, b_exponential, eq_exponential = fit_and_plot_exponential(x, y)
-            st.write(f"R2: {r2_exponential:.4f}, Coefficients: a: {a_exponential:.4f}, b: {b_exponential:.4f}")
-            st.write(f"Equation: {eq_exponential}")
+    # Forecasting future values using the best model
+    if best_model == 'Linear':
+        future_x, future_y_pred = forecast_best_model('Linear', x, y, 'Linear', additional_params=(model_linear, x_poly_linear))
+    elif best_model == 'Quadratic':
+        future_x, future_y_pred = forecast_best_model('Quadratic', x, y, 'Quadratic', additional_params=(model_quadratic, x_poly_quadratic))
+    elif best_model == 'Quartic':
+        future_x, future_y_pred = forecast_best_model('Quartic', x, y, 'Quartic', additional_params=(model_quartic, x_poly_quartic))
+    elif best_model == 'Exponential':
+        future_x, future_y_pred = forecast_best_model('Exponential', x, y, 'Exponential', additional_params=(a_exp, b_exp))
+    elif best_model == 'Modified Exponential':
+        future_x, future_y_pred = forecast_best_model('Modified Exponential', x, y, 'Modified Exponential', additional_params=(a_mod_exp, b_mod_exp, c_mod_exp))
+    elif best_model == 'Quadratic B':
+        future_x, future_y_pred = forecast_best_model('Quadratic B', x, y, 'Quadratic B', additional_params=(a_quad_b, b_quad_b, c_quad_b))
+    elif best_model == 'Cobb-Douglas':
+        future_x, future_y_pred = forecast_best_model('Cobb-Douglas', x, y, 'Cobb-Douglas', additional_params=(model_cobb_douglas, x_log, y_log))
 
-            st.subheader('Modified Exponential Regression')
-            mse_mod_exp, r2_mod_exp, a_mod_exp, b_mod_exp, c_mod_exp, eq_mod_exp = fit_and_plot_modified_exponential(x, y)
-            st.write(f"R2: {r2_mod_exp:.4f}, Coefficients: a: {a_mod_exp:.4f}, b: {b_mod_exp:.4f}, c: {c_mod_exp:.4f}")
-            st.write(f"Equation: {eq_mod_exp}")
+    st.write(f"### Forecasting using the Best Model: {best_model}")
+    st.write(pd.DataFrame({
+        'Future Time': future_x,
+        'Predicted Value': future_y_pred
+    }))
 
-            st.subheader('QuadraticB Regression')
-            mse_quadratic_b, r2_quadratic_b, intercept_quadratic_b, coeff_quadratic_b, p_values_quadratic_b, eq_quadratic_b, quadratic_b_model = fit_and_plot_quadratic_b(x, y)
-            st.write(f"R2: {r2_quadratic_b:.4f}, Intercept: {intercept_quadratic_b:.4f}, Coefficients: b: {coeff_quadratic_b[0]:.4f}, c: {coeff_quadratic_b[1]:.4f}")
-            st.write(f"Equation: {eq_quadratic_b}")
-
-            # Determine Best Model
-            model_info = {
-                'Model': ['Linear', 'Quadratic', 'Quartic', 'Cobb-Douglas', 'Exponential', 'Modified Exponential', 'QuadraticB'],
-                'MSE': [mse_linear, mse_quadratic, mse_quartic, mse_cobb_douglas, mse_exponential, mse_mod_exp, mse_quadratic_b],
-                'R2': [r2_linear, r2_quadratic, r2_quartic, r2_cobb_douglas, r2_exponential, r2_mod_exp, r2_quadratic_b],
-                'Equation': [eq_linear, eq_quadratic, eq_quartic, eq_cobb_douglas, eq_exponential, eq_mod_exp, eq_quadratic_b],
-                'Interpretation': [f'Intercept: {intercept_linear:.4f}, Coeff: {coeff_linear[1]:.4f}', 
-                                    f'Intercept: {intercept_quadratic:.4f}, Coeff: {coeff_quadratic[1]:.4f}, {coeff_quadratic[2]:.4f}',
-                                    f'Intercept: {intercept_quadratic:.4f}, Coeff: {coeff_quadratic[1]:.4f}, {coeff_quadratic[2]:.4f}, {coeff_quadratic[3]:.4f}',
-                                    f'Intercept: {intercept_cobb_douglas:.4f}, Coefficient: {coeff_cobb_douglas[0]:.4f}', 
-                                    f'a: {a_exponential:.4f}, b: {b_exponential:.4f}',
-                                    f'a: {a_mod_exp:.4f}, b: {b_mod_exp:.4f}, c: {c_mod_exp:.4f}',
-                                    f'Intercept: {intercept_quadratic_b:.4f}, b: {coeff_quadratic_b[0]:.4f}, c: {coeff_quadratic_b[1]:.4f}']
-            }
-            model_info_df = pd.DataFrame(model_info)
-            best_model_idx = model_info_df['R2'].idxmax()
-            best_model_name = model_info_df.loc[best_model_idx, 'Model']
-            best_model_mse = model_info_df.loc[best_model_idx, 'MSE']
-            best_model_r2 = model_info_df.loc[best_model_idx, 'R2']
-            best_model_equation = model_info_df.loc[best_model_idx, 'Equation']
-            best_model_interpretation = model_info_df.loc[best_model_idx, 'Interpretation']
-
-            st.markdown(f"<div style='color: orange; font-size:30px; font-weight:bold;'>"
-                        f"Best Model: {best_model_name} "
-                        f"(MSE: {best_model_mse:.4f}, R^2: {best_model_r2:.4f})"
-                        f"</div>", unsafe_allow_html=True)
-            st.write(f"Equation: {best_model_equation}")
-            st.write(f"Interpretation: {best_model_interpretation}")
-
-            # Forecast using the best model
-            st.subheader('Forecasting with the Best Model')
-            if best_model_name == 'Linear':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Linear', additional_params=(linear_model, linear_x_poly))
-            elif best_model_name == 'Quadratic':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Quadratic', additional_params=(quadratic_model, quadratic_x_poly))
-            elif best_model_name == 'Quartic':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Quartic', additional_params=(quartic_model, quartic_x_poly))
-            elif best_model_name == 'Cobb-Douglas':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Cobb-Douglas', additional_params=(cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log))
-            elif best_model_name == 'Exponential':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Exponential', additional_params=(a_exponential, b_exponential))
-            elif best_model_name == 'Modified Exponential':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Modified Exponential', additional_params=(a_mod_exp, b_mod_exp, c_mod_exp))
-            elif best_model_name == 'QuadraticB':
-                future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'QuadraticB', additional_params=quadratic_b_model)
-
-            st.write(f"Next 3 values for {best_model_name} model:")
-            st.write(pd.DataFrame({'X': future_x, 'Predicted Y': future_y_pred}))
-
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
-
-if __name__ == "__main__":
-    main()
