@@ -216,7 +216,7 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
 
 # Streamlit App
 st.title("Regression Model Fitting and Forecasting")
-uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
+uploaded_file = st.file_uploader("Upload a CSV, xlsx file", type=["csv","xlsx"])
 
 if uploaded_file is not None:
     try:
