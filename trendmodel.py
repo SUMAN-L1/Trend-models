@@ -35,15 +35,15 @@ def fit_and_plot_exponential(x, y):
     plt.grid(True)
     st.pyplot(plt)
     
-    # Interpretations and details
-    st.write(f"**Exponential Model Equation:** {equation}")
+    # Interpretations
+    st.write("### Exponential Model")
+    st.write(f"**Equation:** {equation}")
     st.write(f"**Coefficients:** a = {a:.4f}, b = {b:.4f}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
     st.write(f"**Interpretation:**")
-    st.write(f"1. **Coefficient a ({a:.4f})**: This represents the initial value when X (Time) is 0.")
-    st.write(f"2. **Coefficient b ({b:.4f})**: This represents the growth rate. If b > 0, the value is increasing exponentially over time; if b < 0, the value is decreasing exponentially over time.")
-    st.write(f"3. **Decision Insight**: If the goal is to assess growth, a positive b indicates consistent growth, while a negative b suggests a decline. The magnitude of b reflects the speed of this change.")
+    st.write(f"1. **a ({a:.4f})**: Initial value when X (Time) is 0.")
+    st.write(f"2. **b ({b:.4f})**: Growth rate. Positive value indicates exponential growth; negative indicates exponential decay.")
     
     return mse, r2, rmse, a, b, equation
 
@@ -74,16 +74,16 @@ def fit_and_plot_modified_exponential(x, y):
     plt.grid(True)
     st.pyplot(plt)
     
-    # Interpretations and details
-    st.write(f"**Modified Exponential Model Equation:** {equation}")
+    # Interpretations
+    st.write("### Modified Exponential Model")
+    st.write(f"**Equation:** {equation}")
     st.write(f"**Coefficients:** a = {a:.4f}, b = {b:.4f}, c = {c:.4f}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
     st.write(f"**Interpretation:**")
-    st.write(f"1. **Coefficient a ({a:.4f})**: This is the initial scale factor when X (Time) is 0.")
-    st.write(f"2. **Coefficient b ({b:.4f})**: This indicates the growth rate, similar to the basic exponential model.")
-    st.write(f"3. **Coefficient c ({c:.4f})**: This is the adjustment factor that shifts the entire curve up or down.")
-    st.write(f"4. **Decision Insight**: The model adjusts for baseline shifts with c. A positive b still indicates growth, but c allows for a baseline that isn't at zero, reflecting underlying trends in the data.")
+    st.write(f"1. **a ({a:.4f})**: Scale factor.")
+    st.write(f"2. **b ({b:.4f})**: Growth rate. Positive indicates growth; negative indicates decay.")
+    st.write(f"3. **c ({c:.4f})**: Baseline adjustment.")
     
     return mse, r2, rmse, a, b, c, equation
 
@@ -119,20 +119,17 @@ def fit_and_plot_regression(x, y, degree):
     plt.grid(True)
     st.pyplot(plt)
     
-    # Interpretations and details
-    st.write(f"**Degree {degree} Polynomial Model Equation:** {equation}")
+    # Interpretations
+    st.write(f"### Degree {degree} Polynomial Model")
+    st.write(f"**Equation:** {equation}")
     st.write(f"**Intercept:** {intercept}")
     st.write(f"**Coefficients:** {coefficients}")
     st.write(f"**P-Values:** {p_values}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
     st.write(f"**Interpretation:**")
-    st.write(f"1. **Intercept ({intercept})**: This represents the starting value of Y when X (Time) is 0.")
-    st.write(f"2. **Coefficients**: Each coefficient represents the contribution of the corresponding polynomial term to the dependent variable Y.")
-    st.write(f"   - **Linear Term ({coefficients[0]}):** Indicates the rate of change. A positive value means Y increases as X increases, and a negative value means Y decreases as X increases.")
-    st.write(f"   - **Quadratic Term (degree 2):** If present, this term captures the curvature in the relationship between X and Y. A positive coefficient suggests a U-shaped relationship, while a negative coefficient suggests an inverted U-shape.")
-    st.write(f"   - **Higher-Order Terms:** If the model includes cubic or quartic terms, these capture more complex shapes in the data.")
-    st.write(f"3. **Decision Insight**: The decision-maker should look at the sign and magnitude of each term. For example, a large positive quadratic term might suggest acceleration in the growth, while a negative term suggests deceleration or a peak.")
+    st.write(f"1. **Intercept ({intercept})**: Value when X (Time) is 0.")
+    st.write(f"2. **Coefficients:** Each term's impact on Y. Positive values indicate increasing trends, negative values indicate decreasing trends.")
     
     return mse, r2, rmse, intercept, coefficients, p_values, equation, model, x_poly
 
@@ -166,16 +163,16 @@ def fit_and_plot_cobb_douglas(x, y):
     plt.grid(True)
     st.pyplot(plt)
     
-    # Interpretations and details
-    st.write(f"**Cobb-Douglas Model Equation:** {equation}")
+    # Interpretations
+    st.write("### Cobb-Douglas Model")
+    st.write(f"**Equation:** {equation}")
     st.write(f"**Coefficients:** {coefficients}")
     st.write(f"**P-Values:** {p_values}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
     st.write(f"**Interpretation:**")
-    st.write(f"1. **Intercept ({intercept}):** This represents the logarithm of the baseline output when the independent variable is at its baseline level (X=1).")
-    st.write(f"2. **Coefficient ({coefficients[0]}):** This indicates the elasticity of Y with respect to X. If this coefficient is greater than 1, Y is highly elastic, meaning a 1% increase in X results in more than a 1% increase in Y. If it's less than 1, Y is inelastic.")
-    st.write(f"3. **Decision Insight**: The Cobb-Douglas model is particularly useful for analyzing production functions or growth scenarios. A highly elastic relationship suggests that the dependent variable responds strongly to changes in the independent variable.")
+    st.write(f"1. **Intercept ({intercept})**: Log baseline value when X is 1.")
+    st.write(f"2. **Coefficient ({coefficients[0]})**: Elasticity of Y with respect to X.")
     
     return mse, r2, rmse, intercept, coefficients, p_values, equation, model, x_log, y_log
 
