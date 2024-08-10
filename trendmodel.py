@@ -219,7 +219,7 @@ st.title("Regression Model Fitting and Forecasting")
 import streamlit as st
 import pandas as pd
 
-    uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
+uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
     
     if uploaded_file is not None:
         try:
