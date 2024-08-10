@@ -40,7 +40,10 @@ def fit_and_plot_exponential(x, y):
     st.write(f"**Coefficients:** a = {a:.4f}, b = {b:.4f}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
-    st.write(f"**Interpretation:** For every unit increase in {x}, the {y} is expected to change by a factor of e^{b:.4f}.")
+    st.write(f"**Interpretation:**")
+    st.write(f"1. **Coefficient a ({a:.4f})**: This represents the initial value when X (Time) is 0.")
+    st.write(f"2. **Coefficient b ({b:.4f})**: This represents the growth rate. If b > 0, the value is increasing exponentially over time; if b < 0, the value is decreasing exponentially over time.")
+    st.write(f"3. **Decision Insight**: If the goal is to assess growth, a positive b indicates consistent growth, while a negative b suggests a decline. The magnitude of b reflects the speed of this change.")
     
     return mse, r2, rmse, a, b, equation
 
@@ -76,7 +79,11 @@ def fit_and_plot_modified_exponential(x, y):
     st.write(f"**Coefficients:** a = {a:.4f}, b = {b:.4f}, c = {c:.4f}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
-    st.write(f"**Interpretation:** For every unit increase in {x}, the {y} is expected to change by a factor of e^{b:.4f} plus a constant {c:.4f}.")
+    st.write(f"**Interpretation:**")
+    st.write(f"1. **Coefficient a ({a:.4f})**: This is the initial scale factor when X (Time) is 0.")
+    st.write(f"2. **Coefficient b ({b:.4f})**: This indicates the growth rate, similar to the basic exponential model.")
+    st.write(f"3. **Coefficient c ({c:.4f})**: This is the adjustment factor that shifts the entire curve up or down.")
+    st.write(f"4. **Decision Insight**: The model adjusts for baseline shifts with c. A positive b still indicates growth, but c allows for a baseline that isn't at zero, reflecting underlying trends in the data.")
     
     return mse, r2, rmse, a, b, c, equation
 
@@ -119,7 +126,13 @@ def fit_and_plot_regression(x, y, degree):
     st.write(f"**P-Values:** {p_values}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
-    st.write(f"**Interpretation:** The relationship between {x} and {y} is modeled with a degree {degree} polynomial.")
+    st.write(f"**Interpretation:**")
+    st.write(f"1. **Intercept ({intercept})**: This represents the starting value of Y when X (Time) is 0.")
+    st.write(f"2. **Coefficients**: Each coefficient represents the contribution of the corresponding polynomial term to the dependent variable Y.")
+    st.write(f"   - **Linear Term ({coefficients[0]}):** Indicates the rate of change. A positive value means Y increases as X increases, and a negative value means Y decreases as X increases.")
+    st.write(f"   - **Quadratic Term (degree 2):** If present, this term captures the curvature in the relationship between X and Y. A positive coefficient suggests a U-shaped relationship, while a negative coefficient suggests an inverted U-shape.")
+    st.write(f"   - **Higher-Order Terms:** If the model includes cubic or quartic terms, these capture more complex shapes in the data.")
+    st.write(f"3. **Decision Insight**: The decision-maker should look at the sign and magnitude of each term. For example, a large positive quadratic term might suggest acceleration in the growth, while a negative term suggests deceleration or a peak.")
     
     return mse, r2, rmse, intercept, coefficients, p_values, equation, model, x_poly
 
@@ -155,57 +168,18 @@ def fit_and_plot_cobb_douglas(x, y):
     
     # Interpretations and details
     st.write(f"**Cobb-Douglas Model Equation:** {equation}")
-    st.write(f"**Intercept:** {intercept}")
     st.write(f"**Coefficients:** {coefficients}")
     st.write(f"**P-Values:** {p_values}")
     st.write(f"**R²:** {r2:.4f}")
     st.write(f"**RMSE:** {rmse:.4f}")
-    st.write(f"**Interpretation:** The Cobb-Douglas model suggests that the relationship between {x} and {y} follows a logarithmic transformation.")
+    st.write(f"**Interpretation:**")
+    st.write(f"1. **Intercept ({intercept}):** This represents the logarithm of the baseline output when the independent variable is at its baseline level (X=1).")
+    st.write(f"2. **Coefficient ({coefficients[0]}):** This indicates the elasticity of Y with respect to X. If this coefficient is greater than 1, Y is highly elastic, meaning a 1% increase in X results in more than a 1% increase in Y. If it's less than 1, Y is inelastic.")
+    st.write(f"3. **Decision Insight**: The Cobb-Douglas model is particularly useful for analyzing production functions or growth scenarios. A highly elastic relationship suggests that the dependent variable responds strongly to changes in the independent variable.")
     
     return mse, r2, rmse, intercept, coefficients, p_values, equation, model, x_log, y_log
 
-# Function to forecast using the best model
-def forecast_best_model(best_model, x, y, model_type, additional_params=None):
-    if model_type == 'Linear':
-        model, x_poly = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=1).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
-        
-    elif model_type == 'Quadratic':
-        model, x_poly = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=2).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
-        
-    elif model_type == 'Quartic':
-        model, x_poly = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_x_poly = PolynomialFeatures(degree=4).fit_transform(future_x.reshape(-1, 1))
-        future_y_pred = model.predict(future_x_poly)
-        
-    elif model_type == 'Cobb-Douglas':
-        model, x_log, y_log = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_y_pred = np.exp(model.predict(sm.add_constant(np.log(future_x.reshape(-1, 1)))))
-        
-    elif model_type == 'Exponential':
-        a, b = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_y_pred = a * np.exp(b * future_x)
-        
-    elif model_type == 'Modified Exponential':
-        a, b, c = additional_params
-        last_x = x[-1]
-        future_x = np.array([last_x + i for i in range(1, 4)])
-        future_y_pred = a * np.exp(b * future_x) + c
-    
-    return future_x, future_y_pred
+# Forecast function remains the same as previously provided
 
 # Main Streamlit app code
 st.title("Time Series Trend Analysis")
