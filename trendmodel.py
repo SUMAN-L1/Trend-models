@@ -97,6 +97,38 @@ def fit_and_plot_regression(x, y, degree):
     
     return mse, r2, intercept, coefficients, p_values, equation, model, x_poly
 
+# Function to fit and plot QuadraticB model
+def fit_and_plot_quadratic_b(x, y):
+    # x^2 feature for quadraticB model
+    x_squared = x**2
+    
+    x_reshaped = np.vstack((x, x_squared)).T
+    x_reshaped_const = sm.add_constant(x_reshaped)
+
+    model = sm.OLS(y, x_reshaped_const).fit()
+    
+    y_pred = model.predict(x_reshaped_const)
+    
+    mse = mean_squared_error(y, y_pred)
+    r2 = r2_score(y, y_pred)
+    
+    intercept = np.round(model.params[0], 4)
+    coefficients = np.round(model.params[1:], 4)  # Skip intercept coefficient
+    p_values = np.round(model.pvalues[1:], 4)  # Skip intercept p-value
+    equation = f"Y = {intercept} + {coefficients[0]}*X - {coefficients[1]}*X^2"
+    
+    plt.figure()
+    plt.scatter(x, y, color='blue', label='Actual')
+    plt.plot(x, y_pred, color='red', label='Estimated (QuadraticB)')
+    plt.title(f'QuadraticB Regression\nMSE: {mse:.2f}, R^2: {r2:.2f}')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True)
+    st.pyplot(plt)
+    
+    return mse, r2, intercept, coefficients, p_values, equation, model
+
 # Function to fit and plot Cobb-Douglas model
 def fit_and_plot_cobb_douglas(x, y):
     x_log = np.log(x)
@@ -156,7 +188,7 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
         future_x_log = np.log(future_x)
-        future_y_log_pred = model.predict(sm.add_constant(future_x_log.reshape(-1, 1)))  # Ensure future_x_log is 2D
+        future_y_log_pred = model.predict(sm.add_constant(future_x_log.reshape(-1, 1)))  # Ensure 2D input
         future_y_pred = np.exp(future_y_log_pred)
         
     elif model_type == 'Exponential':
@@ -170,33 +202,36 @@ def forecast_best_model(best_model, x, y, model_type, additional_params=None):
         last_x = x[-1]
         future_x = np.array([last_x + i for i in range(1, 4)])
         future_y_pred = a * np.exp(b * future_x) + c
+
+    elif model_type == 'QuadraticB':
+        model = additional_params
+        last_x = x[-1]
+        future_x = np.array([last_x + i for i in range(1, 4)])
+        future_x_squared = future_x**2
+        future_x_reshaped = np.vstack((future_x, future_x_squared)).T
+        future_x_reshaped_const = sm.add_constant(future_x_reshaped)
+        future_y_pred = model.predict(future_x_reshaped_const)
         
     return future_x, future_y_pred
 
-st.title('Time Series Trend Analysis')
-
-uploaded_file = st.file_uploader("Upload your CSV or XLSX file", type=["csv", "xlsx"])
+# Streamlit App
+st.title("Regression Model Fitting and Forecasting")
+uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
 
 if uploaded_file is not None:
     try:
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
+        data = pd.read_csv(uploaded_file)
+        st.write("Data Preview:", data.head())
 
-        st.write("Data Preview:", df.head())
+        # Assuming the first column is the independent variable and the second is the dependent variable
+        independent_var = data.columns[0]
+        dependent_var = data.columns[1]
         
-        # Select columns for independent and dependent variables
-        independent_var = st.selectbox('Select the Time/Year column:', df.columns)
-        dependent_var = st.selectbox('Select the dependent variable column:', df.columns)
+        x = data[independent_var].values
+        y = data[dependent_var].values
 
-        # Extract columns
-        x = df[independent_var].values
-        y = df[dependent_var].values
-
-        # Model Equations Table
         model_info = {
-            'Model': ['Linear', 'Quadratic', 'Quartic', 'Cobb-Douglas', 'Exponential', 'Modified Exponential'],
+            'Model': ['Linear', 'Quadratic', 'Quartic', 'QuadraticB', 'Cobb-Douglas', 'Exponential', 'Modified Exponential'],
             'Equation': [],
             'MSE': [],
             'R2': [],
@@ -242,6 +277,18 @@ if uploaded_file is not None:
         model_info['Interpretation'].append("Intercept is the baseline value. Coefficients show the impact of higher powers of X on Y.")
         st.write(f"R^2: {quartic_r2:.4f}, Intercept: {quartic_intercept:.4f}, Coefficients: {quartic_coefficients}, P-Values: {quartic_p_values}")
 
+        # QuadraticB Regression
+        st.subheader('QuadraticB Regression')
+        quadratic_b_mse, quadratic_b_r2, quadratic_b_intercept, quadratic_b_coefficients, quadratic_b_p_values, quadratic_b_equation, quadratic_b_model = fit_and_plot_quadratic_b(x, y)
+        model_info['Equation'].append(quadratic_b_equation)
+        model_info['MSE'].append(quadratic_b_mse)
+        model_info['R2'].append(quadratic_b_r2)
+        model_info['Intercept'].append(quadratic_b_intercept)
+        model_info['Coefficients'].append(quadratic_b_coefficients)
+        model_info['P-Values'].append(quadratic_b_p_values)
+        model_info['Interpretation'].append("Intercept is the baseline value. Coefficient indicates the impact of X and X^2 on Y.")
+        st.write(f"R^2: {quadratic_b_r2:.4f}, Intercept: {quadratic_b_intercept:.4f}, Coefficients: {quadratic_b_coefficients}, P-Values: {quadratic_b_p_values}")
+
         # Cobb-Douglas Regression
         st.subheader('Cobb-Douglas Regression')
         cobb_douglas_mse, cobb_douglas_r2, cobb_douglas_intercept, cobb_douglas_coefficients, cobb_douglas_p_values, cobb_douglas_equation, cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log = fit_and_plot_cobb_douglas(x, y)
@@ -276,39 +323,43 @@ if uploaded_file is not None:
         model_info['Coefficients'].append([mod_exp_b, mod_exp_c])
         model_info['P-Values'].append(None)  # Similar as above
         model_info['Interpretation'].append("Intercept (a) is initial value. Coefficient (b) is growth rate, (c) is a constant offset.")
-        st.write(f"R^2: {mod_exp_r2:.4f}, Intercept: {mod_exp_a:.4f}, Coefficients: {mod_exp_b:.4f}, {mod_exp_c:.4f}")
+        st.write(f"R^2: {mod_exp_r2:.4f}, Intercept: {mod_exp_a:.4f}, Coefficients: b: {mod_exp_b:.4f}, c: {mod_exp_c:.4f}")
 
-        # Display model info
-        model_df = pd.DataFrame(model_info)
-        st.write("Model Equations and Metrics:")
-        st.write(model_df)
+        # Determine Best Model
+        model_info_df = pd.DataFrame(model_info)
+        best_model_idx = model_info_df['R2'].idxmax()
+        best_model_name = model_info_df.loc[best_model_idx, 'Model']
+        best_model_mse = model_info_df.loc[best_model_idx, 'MSE']
+        best_model_r2 = model_info_df.loc[best_model_idx, 'R2']
+        best_model_equation = model_info_df.loc[best_model_idx, 'Equation']
+        best_model_interpretation = model_info_df.loc[best_model_idx, 'Interpretation']
 
-        # Determine the best model
-        best_model_idx = model_df['R2'].idxmax()
-        best_model_name = model_df.iloc[best_model_idx]['Model']
-        st.write(f"**Best Model:** {best_model_name}")
+        st.markdown("<div style='color: orange; font-size:30px; font-weight:bold;'>"
+                    f"Best Model: {best_model_name} "
+                    f"(MSE: {best_model_mse:.4f}, R^2: {best_model_r2:.4f})"
+                    f"</div>", unsafe_allow_html=True)
+        st.write(f"Equation: {best_model_equation}")
+        st.write(f"Interpretation: {best_model_interpretation}")
 
-        # Forecast with the best model
-        additional_params = None
+        # Forecast using the best model
+        st.subheader('Forecasting with the Best Model')
         if best_model_name == 'Linear':
-            additional_params = (linear_model, linear_x_poly)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Linear', additional_params=(linear_model, linear_x_poly))
         elif best_model_name == 'Quadratic':
-            additional_params = (quadratic_model, quadratic_x_poly)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Quadratic', additional_params=(quadratic_model, quadratic_x_poly))
         elif best_model_name == 'Quartic':
-            additional_params = (quartic_model, quartic_x_poly)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Quartic', additional_params=(quartic_model, quartic_x_poly))
         elif best_model_name == 'Cobb-Douglas':
-            additional_params = (cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Cobb-Douglas', additional_params=(cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log))
         elif best_model_name == 'Exponential':
-            additional_params = (exponential_a, exponential_b)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Exponential', additional_params=(exponential_a, exponential_b))
         elif best_model_name == 'Modified Exponential':
-            additional_params = (mod_exp_a, mod_exp_b, mod_exp_c)
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'Modified Exponential', additional_params=(mod_exp_a, mod_exp_b, mod_exp_c))
+        elif best_model_name == 'QuadraticB':
+            future_x, future_y_pred = forecast_best_model(best_model_name, x, y, 'QuadraticB', additional_params=quadratic_b_model)
 
-        future_x, future_y_pred = forecast_best_model(best_model_name, x, y, best_model_name, additional_params)
-
-        # Display forecast
-        forecast_df = pd.DataFrame({independent_var: future_x, dependent_var: future_y_pred})
-        st.write("Forecast for the Next 3 Time Points:")
-        st.write(forecast_df)
+        st.write(f"Next 3 values for {best_model_name} model:")
+        st.write(pd.DataFrame({'X': future_x, 'Predicted Y': future_y_pred}))
 
     except Exception as e:
-        st.error(f"Error processing file: {e}")
+        st.error(f"An error occurred: {e}")
