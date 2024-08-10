@@ -231,8 +231,8 @@ if uploaded_file is not None:
     
             st.write("Data Preview:", data.head())
 
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
         # Assuming the first column is the independent variable and the second is the dependent variable
         independent_var = data.columns[0]
