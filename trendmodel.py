@@ -220,7 +220,7 @@ uploaded_file = st.file_uploader("Upload a CSV file", type=["csv","xlsx"])
 
 if uploaded_file is not None:
     try:
-        data = pd.read_csv(uploaded_file)
+        data = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
         st.write("Data Preview:", data.head())
 
         # Assuming the first column is the independent variable and the second is the dependent variable
