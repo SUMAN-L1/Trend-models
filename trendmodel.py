@@ -199,44 +199,84 @@ if uploaded_file is not None:
             'Model': ['Linear', 'Quadratic', 'Quartic', 'Cobb-Douglas', 'Exponential', 'Modified Exponential'],
             'Equation': [],
             'MSE': [],
-            'R2': []
+            'R2': [],
+            'Intercept': [],
+            'Coefficients': [],
+            'P-Values': [],
+            'Interpretation': []
         }
 
         # Linear Regression
+        st.subheader('Linear Regression')
         linear_mse, linear_r2, linear_intercept, linear_coefficients, linear_p_values, linear_equation, linear_model, linear_x_poly = fit_and_plot_regression(x, y, degree=1)
         model_info['Equation'].append(linear_equation)
         model_info['MSE'].append(linear_mse)
         model_info['R2'].append(linear_r2)
-        
+        model_info['Intercept'].append(linear_intercept)
+        model_info['Coefficients'].append(linear_coefficients)
+        model_info['P-Values'].append(linear_p_values)
+        model_info['Interpretation'].append("Intercept is the baseline value. Coefficient indicates the change in Y for a unit change in X.")
+        st.write(f"R^2: {linear_r2:.4f}, Intercept: {linear_intercept:.4f}, Coefficients: {linear_coefficients}, P-Values: {linear_p_values}")
+
         # Quadratic Regression
+        st.subheader('Quadratic Regression')
         quadratic_mse, quadratic_r2, quadratic_intercept, quadratic_coefficients, quadratic_p_values, quadratic_equation, quadratic_model, quadratic_x_poly = fit_and_plot_regression(x, y, degree=2)
         model_info['Equation'].append(quadratic_equation)
         model_info['MSE'].append(quadratic_mse)
         model_info['R2'].append(quadratic_r2)
+        model_info['Intercept'].append(quadratic_intercept)
+        model_info['Coefficients'].append(quadratic_coefficients)
+        model_info['P-Values'].append(quadratic_p_values)
+        model_info['Interpretation'].append("Intercept is the baseline value. Coefficients show how Y changes as X and X^2 change.")
+        st.write(f"R^2: {quadratic_r2:.4f}, Intercept: {quadratic_intercept:.4f}, Coefficients: {quadratic_coefficients}, P-Values: {quadratic_p_values}")
 
         # Quartic Regression
+        st.subheader('Quartic Regression')
         quartic_mse, quartic_r2, quartic_intercept, quartic_coefficients, quartic_p_values, quartic_equation, quartic_model, quartic_x_poly = fit_and_plot_regression(x, y, degree=4)
         model_info['Equation'].append(quartic_equation)
         model_info['MSE'].append(quartic_mse)
         model_info['R2'].append(quartic_r2)
+        model_info['Intercept'].append(quartic_intercept)
+        model_info['Coefficients'].append(quartic_coefficients)
+        model_info['P-Values'].append(quartic_p_values)
+        model_info['Interpretation'].append("Intercept is the baseline value. Coefficients show the impact of higher powers of X on Y.")
+        st.write(f"R^2: {quartic_r2:.4f}, Intercept: {quartic_intercept:.4f}, Coefficients: {quartic_coefficients}, P-Values: {quartic_p_values}")
 
         # Cobb-Douglas Regression
+        st.subheader('Cobb-Douglas Regression')
         cobb_douglas_mse, cobb_douglas_r2, cobb_douglas_intercept, cobb_douglas_coefficients, cobb_douglas_p_values, cobb_douglas_equation, cobb_douglas_model, cobb_douglas_x_log, cobb_douglas_y_log = fit_and_plot_cobb_douglas(x, y)
         model_info['Equation'].append(cobb_douglas_equation)
         model_info['MSE'].append(cobb_douglas_mse)
         model_info['R2'].append(cobb_douglas_r2)
-        
+        model_info['Intercept'].append(cobb_douglas_intercept)
+        model_info['Coefficients'].append(cobb_douglas_coefficients)
+        model_info['P-Values'].append(cobb_douglas_p_values)
+        model_info['Interpretation'].append("Intercept is the log baseline. Coefficient indicates elasticity: % change in Y for a % change in X.")
+        st.write(f"R^2: {cobb_douglas_r2:.4f}, Intercept: {cobb_douglas_intercept:.4f}, Coefficients: {cobb_douglas_coefficients}, P-Values: {cobb_douglas_p_values}")
+
         # Exponential Regression
+        st.subheader('Exponential Regression')
         exponential_mse, exponential_r2, exponential_a, exponential_b, exponential_equation = fit_and_plot_exponential(x, y)
         model_info['Equation'].append(exponential_equation)
         model_info['MSE'].append(exponential_mse)
         model_info['R2'].append(exponential_r2)
+        model_info['Intercept'].append(exponential_a)
+        model_info['Coefficients'].append([exponential_b])
+        model_info['P-Values'].append(None)  # Exponential regression using curve_fit does not directly provide p-values
+        model_info['Interpretation'].append("Intercept (a) is the starting value. Coefficient (b) indicates growth rate.")
+        st.write(f"R^2: {exponential_r2:.4f}, Intercept: {exponential_a:.4f}, Coefficient: {exponential_b:.4f}")
 
         # Modified Exponential Regression
+        st.subheader('Modified Exponential Regression')
         mod_exp_mse, mod_exp_r2, mod_exp_a, mod_exp_b, mod_exp_c, mod_exp_equation = fit_and_plot_modified_exponential(x, y)
         model_info['Equation'].append(mod_exp_equation)
         model_info['MSE'].append(mod_exp_mse)
         model_info['R2'].append(mod_exp_r2)
+        model_info['Intercept'].append(mod_exp_a)
+        model_info['Coefficients'].append([mod_exp_b, mod_exp_c])
+        model_info['P-Values'].append(None)  # Similar as above
+        model_info['Interpretation'].append("Intercept (a) is initial value. Coefficient (b) is growth rate, (c) is a constant offset.")
+        st.write(f"R^2: {mod_exp_r2:.4f}, Intercept: {mod_exp_a:.4f}, Coefficients: {mod_exp_b:.4f}, {mod_exp_c:.4f}")
 
         # Display model info
         model_df = pd.DataFrame(model_info)
