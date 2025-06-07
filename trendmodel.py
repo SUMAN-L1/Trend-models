@@ -136,4 +136,4 @@ st.markdown("""
 ---
 App developed by **Suman_econ UAS(B)**  
 For support, reach out at sumanecon.uas@outtlook.in to the developer.
-""")"
+""")
