@@ -1,88 +1,3 @@
-if selected_columns:
-    results = []
-    plot_buffer = BytesIO()
-    plot_buffer_actual = BytesIO()
-
-    df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
-    df = df.dropna(subset=[time_col])  # Drop rows where time conversion failed
-    df = df.reset_index(drop=True)
-
-    # Plot using Index
-    plt.figure(figsize=(14, 6))
-    for col in selected_columns:
-        y = df[col].dropna().values
-        x = np.arange(1, len(y) + 1)
-        data = pd.DataFrame({'x': x, 'y': y})
-
-        models = {
-            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
-            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
-            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
-            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
-            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
-        }
-
-        line_styles = {
-            'Linear': 'solid',
-            'Quadratic': 'dashed',
-            'Cubic': 'dashdot',
-            'Quartic': 'dotted',
-            'Exponential': (0, (3, 5, 1, 5))
-        }
-
-        plt.plot(x, y, label=f"{col} Actual", linewidth=2)
-
-        for name, model in models.items():
-            y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
-            plt.plot(x, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
-            rmse = np.sqrt(mean_squared_error(y, y_pred))
-            results.append({
-                'Variable': col,
-                'Model': name,
-                'R2': model.rsquared,
-                'Adj R2': model.rsquared_adj,
-                'RMSE': rmse,
-                'AIC': aic(model.llf, len(y), model.df_model+1),
-                'BIC': bic(model.llf, len(y), model.df_model+1),
-                'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={aic(model.llf, len(y), model.df_model+1):.1f}, BIC={bic(model.llf, len(y), model.df_model+1):.1f}"
-            })
-
-    plt.xlabel("Index")
-    plt.ylabel("Value")
-    plt.title("Actual vs Fitted Trends (Index on X-axis)")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(plot_buffer, format='png')
-    st.image(plot_buffer, caption="📉 Plot with Index on X-axis")
-
-    # Plot using Date/Year
-    plt.figure(figsize=(14, 6))
-    for col in selected_columns:
-        y = df[col].dropna().values
-        x_time = df[time_col].iloc[:len(y)]
-        x_num = np.arange(1, len(y) + 1)
-        data = pd.DataFrame({'x': x_num, 'y': y})
-
-        models = {
-            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
-            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
-            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
-            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
-            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
-        }
-
-        plt.plot(x_time, y, label=f"{col} Actual", linewidth=2)
-        for name, model in models.items():
-            y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
-            plt.plot(x_time, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
-
-    plt.xlabel("Date/Year")
-    plt.ylabel("Value")
-    plt.title("Actual vs Fitted Trends (Date/Year on X-axis)")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(plot_buffer_actual, format='png')
-    st.image(plot_buffer_actual, caption="📉 Plot with Date/Year on X-axis")
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -93,9 +8,11 @@ from statsmodels.tools.eval_measures import aic, bic
 from io import BytesIO
 from fpdf import FPDF
 
-st.set_page_config(page_title="Trend models for time series [by Suman_econ UAS(B)]", layout="wide")
+# App Title
+st.set_page_config(page_title="Trend models for time series data [by Suman_econ UAS(B)]", layout="wide")
 st.title("📈 Trend models for time series data [by Suman_econ UAS(B)]")
 
+# Introduction
 st.markdown("""
 ### 📘 Introduction
 
@@ -110,6 +27,7 @@ Trend models help analyze how an economic variable behaves over time. They are v
 - You may select one, multiple, or all columns for analysis
 """)
 
+# Upload File
 uploaded_file = st.file_uploader("📤 Upload CSV, XLSX, or XLS file", type=["csv", "xlsx", "xls"])
 
 def load_data(file):
@@ -129,33 +47,30 @@ if uploaded_file:
     selected_columns = st.multiselect("📌 Select variable(s) for trend analysis", options=numeric_cols, default=numeric_cols)
 
     if selected_columns:
-        try:
-            x_full = pd.to_datetime(df[time_col], errors='coerce')
-            if x_full.isnull().all():
-                x_full = df[time_col]
-        except:
-            x_full = df[time_col]
+        results = []
+        best_models = []
+        plot_buffer = BytesIO()
+        plot_buffer_actual = BytesIO()
 
+        df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+        df = df.dropna(subset=[time_col])
+        df = df.sort_values(by=time_col).reset_index(drop=True)
+
+        # Line styles for different models
         line_styles = {
-            'Linear': '-',
-            'Quadratic': '--',
-            'Cubic': '-.',
-            'Quartic': ':',
-            'Exponential': (0, (3, 1, 1, 1))
+            'Linear': 'solid',
+            'Quadratic': 'dashed',
+            'Cubic': 'dashdot',
+            'Quartic': 'dotted',
+            'Exponential': (0, (3, 5, 1, 5))
         }
 
-        results = []
-        best_models = {}
-
+        # Plot 1: Index X-axis
         plt.figure(figsize=(14, 6))
-        plot_buffer = BytesIO()
-
         for col in selected_columns:
             y = df[col].dropna().values
-            valid_index = df[col].dropna().index
-            x_values = x_full.loc[valid_index].values
-            x_index = np.arange(1, len(y) + 1)
-            data = pd.DataFrame({'x': x_index, 'y': y})
+            x = np.arange(1, len(y) + 1)
+            data = pd.DataFrame({'x': x, 'y': y})
 
             models = {
                 'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
@@ -165,103 +80,102 @@ if uploaded_file:
                 'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
             }
 
-            plt.plot(x_values, y, label=f"{col} Actual", linewidth=2, color='black')
+            plt.plot(x, y, label=f"{col} Actual", linewidth=2)
 
-            model_scores = []
+            model_metrics = []
             for name, model in models.items():
                 y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
                 rmse = np.sqrt(mean_squared_error(y, y_pred))
-                score = aic(model.llf, len(y), model.df_model+1) + bic(model.llf, len(y), model.df_model+1)
-
-                model_scores.append((name, score, model, y_pred))
-
-                plt.plot(x_values, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
-
+                model_aic = aic(model.llf, len(y), model.df_model+1)
+                model_bic = bic(model.llf, len(y), model.df_model+1)
                 results.append({
                     'Variable': col,
                     'Model': name,
                     'R2': model.rsquared,
                     'Adj R2': model.rsquared_adj,
                     'RMSE': rmse,
-                    'AIC': aic(model.llf, len(y), model.df_model+1),
-                    'BIC': bic(model.llf, len(y), model.df_model+1),
-                    'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={aic(model.llf, len(y), model.df_model+1):.1f}, BIC={bic(model.llf, len(y), model.df_model+1):.1f}"
+                    'AIC': model_aic,
+                    'BIC': model_bic,
+                    'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={model_aic:.1f}, BIC={model_bic:.1f}"
                 })
+                model_metrics.append((name, model, model_aic + model_bic))
+                plt.plot(x, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
 
-            best_model = min(model_scores, key=lambda x: x[1])
-            best_models[col] = best_model
+            best_model_name, best_model_obj, _ = sorted(model_metrics, key=lambda x: x[2])[0]
+            best_models.append((col, best_model_name, best_model_obj, x, y))
 
-        plt.xlabel("Year / Date")
+        plt.xlabel("Index")
         plt.ylabel("Value")
-        plt.title("Actual vs Fitted Trends")
+        plt.title("Actual vs Fitted Trends (Index X-axis)")
         plt.legend()
         plt.tight_layout()
         plt.savefig(plot_buffer, format='png')
-        st.image(plot_buffer)
+        st.image(plot_buffer, caption="📉 Plot with Index on X-axis")
 
-        # Summary Table with highlight
-        result_df = pd.DataFrame(results)
-
-        def highlight_best(row):
-            is_best = (
-                (result_df['Variable'] == row['Variable']) &
-                (result_df['Model'] == best_models[row['Variable']][0])
-            ).any()
-            return ['background-color: orange; font-weight: bold' if is_best else '' for _ in row]
-
-        st.write("### 📊 Model Comparison Summary")
-        st.dataframe(result_df.style.apply(highlight_best, axis=1))
-
-        # Forecast
-        forecast_buffer = BytesIO()
-        plt.figure(figsize=(12, 5))
-
-        st.write("### 🔮 Forecast Plot (Best Models Only)")
+        # Plot 2: Time Column X-axis
+        plt.figure(figsize=(14, 6))
         for col in selected_columns:
             y = df[col].dropna().values
-            x_index = np.arange(1, len(y) + 1)
-            future_periods = 6
-            future_x = np.arange(len(y) + 1, len(y) + future_periods + 1)
+            x_time = df[time_col].iloc[:len(y)]
+            x_num = np.arange(1, len(y) + 1)
+            data = pd.DataFrame({'x': x_num, 'y': y})
 
-            best_name, _, best_model, _ = best_models[col]
+            models = {
+                'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
+                'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
+                'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
+                'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
+                'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
+            }
 
-            if best_name == 'Linear':
-                X_pred = sm.add_constant(np.concatenate([x_index, future_x]))
-            elif best_name == 'Quadratic':
-                X_pred = sm.add_constant(np.column_stack([np.concatenate([x_index, future_x])**i for i in range(1, 3)]))
-            elif best_name == 'Cubic':
-                X_pred = sm.add_constant(np.column_stack([np.concatenate([x_index, future_x])**i for i in range(1, 4)]))
-            elif best_name == 'Quartic':
-                X_pred = sm.add_constant(np.column_stack([np.concatenate([x_index, future_x])**i for i in range(1, 5)]))
-            elif best_name == 'Exponential':
-                X_pred = sm.add_constant(np.concatenate([x_index, future_x]))
-            else:
-                continue
+            plt.plot(x_time, y, label=f"{col} Actual", linewidth=2)
+            for name, model in models.items():
+                y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
+                plt.plot(x_time, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
 
-            pred_values = best_model.predict(X_pred)
-            if best_name == 'Exponential':
-                pred_values = np.exp(pred_values)
-
-            all_x = list(x_full.loc[df[col].dropna().index].values) + [f"F{i}" for i in range(1, future_periods+1)]
-            plt.plot(all_x, pred_values, label=f"{col} Forecast ({best_name})", linestyle='--')
-
-        plt.title("Forecast using Best Model")
-        plt.xlabel("Year / Date")
+        plt.xlabel("Date/Year")
         plt.ylabel("Value")
+        plt.title("Actual vs Fitted Trends (Time X-axis)")
         plt.legend()
         plt.tight_layout()
-        plt.savefig(forecast_buffer, format='png')
-        st.image(forecast_buffer)
+        plt.savefig(plot_buffer_actual, format='png')
+        st.image(plot_buffer_actual, caption="📉 Plot with Date/Year on X-axis")
 
-        # Download options
+        # Results Table
+        result_df = pd.DataFrame(results)
+        st.write("### 📊 Model Comparison Summary")
+        st.dataframe(result_df)
+
+        # Best model and forecast
+        st.markdown("### ⭐ Best Models and Forecasts")
+        for var, model_name, model_obj, x, y in best_models:
+            st.markdown(f"**{var}: Best model → {model_name}**")
+            X_fore = np.arange(len(x)+1, len(x)+7)
+            if model_name == 'Linear':
+                X_pred = sm.add_constant(X_fore)
+            elif model_name == 'Quadratic':
+                X_pred = sm.add_constant(np.column_stack((X_fore, X_fore**2)))
+            elif model_name == 'Cubic':
+                X_pred = sm.add_constant(np.column_stack((X_fore, X_fore**2, X_fore**3)))
+            elif model_name == 'Quartic':
+                X_pred = sm.add_constant(np.column_stack((X_fore, X_fore**2, X_fore**3, X_fore**4)))
+            elif model_name == 'Exponential':
+                X_pred = sm.add_constant(X_fore)
+
+            forecast = model_obj.predict(X_pred)
+            if model_name == 'Exponential':
+                forecast = np.exp(forecast)
+
+            forecast_years = pd.date_range(df[time_col].iloc[-1], periods=6, freq='Y')
+            forecast_df = pd.DataFrame({'Year': forecast_years.year, 'Forecast': forecast})
+            st.write(forecast_df)
+
+        # Downloads
         st.markdown("### 💾 Download Options")
-
-        def convert_df(df):
-            return df.to_csv(index=False).encode('utf-8')
-
+        def convert_df(df): return df.to_csv(index=False).encode('utf-8')
         st.download_button("⬇️ Download Table as CSV", data=convert_df(result_df), file_name="model_summary.csv", mime="text/csv")
-        st.download_button("🖼 Download Plot as PNG", data=plot_buffer.getvalue(), file_name="trend_plot.png", mime="image/png")
-        st.download_button("🖼 Download Forecast Plot as PNG", data=forecast_buffer.getvalue(), file_name="forecast_plot.png", mime="image/png")
+        st.download_button("🖼 Download Plot (Index) as PNG", data=plot_buffer.getvalue(), file_name="trend_plot_index.png", mime="image/png")
+        st.download_button("🖼 Download Plot (Time) as PNG", data=plot_buffer_actual.getvalue(), file_name="trend_plot_time.png", mime="image/png")
 
         # PDF generation
         pdf = FPDF()
@@ -271,13 +185,12 @@ if uploaded_file:
         for idx, row in result_df.iterrows():
             pdf.multi_cell(0, 10, f"{row['Variable']} - {row['Model']}: {row['Interpretation']}")
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
-        pdf_output = BytesIO(pdf_bytes)
-        st.download_button("📄 Download Report as PDF", data=pdf_output, file_name="trend_report.pdf", mime="application/pdf")
+        st.download_button("📄 Download Report as PDF", data=BytesIO(pdf_bytes), file_name="trend_report.pdf", mime="application/pdf")
 
+        # Policy Brief
         st.markdown("""
         ---
         ### 🧩 Policy Brief
-
         Based on the best-fitting models (lowest AIC/BIC):
         - Forecast future economic indicators with confidence
         - Identify structural trends, volatility, or seasonal shifts
@@ -289,5 +202,5 @@ if uploaded_file:
 st.markdown("""
 ---
 App developed by **Suman_econ UAS(B)**  
-For support, reach out via sumaneconuas@outlook.in to the developer.
+For support, reach out via university research forums or contact the developer.
 """)
