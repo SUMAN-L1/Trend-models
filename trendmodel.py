@@ -1,32 +1,34 @@
-# trend_models_streamlit.py
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 from statsmodels.tools.eval_measures import aic, bic
 from io import BytesIO
 from fpdf import FPDF
-import base64
 
 # App Title
 st.set_page_config(page_title="Trend models for time series data [by Suman_econ UAS(B)]", layout="wide")
-st.title("Trend models for time series data [by Suman_econ UAS(B)]")
+st.title("📈 Trend models for time series data [by Suman_econ UAS(B)]")
 
 # Introduction
 st.markdown("""
-### Introduction
-Trend models help analyze how a particular economic variable behaves over time. They are vital in forecasting, understanding long-term movements, and policy analysis. This app allows you to fit linear, quadratic, cubic, quartic, and exponential trend models to time series data.
+### 📘 Introduction
 
-**Instructions:** Ensure the first column is Date or Year. Other columns should contain numeric data (like GDP, production, prices, etc.). You can select one or more columns, or all, for analysis.
+Trend models help analyze how an economic variable behaves over time. They are vital for:
+- Forecasting long-term changes
+- Understanding growth or instability patterns
+- Supporting policy and investment decisions
+
+**Instructions:**
+- Ensure the first column is a Date or Year
+- The remaining columns should be numeric variables (e.g., GDP, Production)
+- You may select one, multiple, or all columns for analysis
 """)
 
-# File upload
-uploaded_file = st.file_uploader("Upload your data file (CSV, XLSX, XLS)", type=["csv", "xlsx", "xls"])
+# Upload File
+uploaded_file = st.file_uploader("📤 Upload CSV, XLSX, or XLS file", type=["csv", "xlsx", "xls"])
 
 def load_data(file):
     if file.name.endswith(".csv"):
@@ -37,23 +39,21 @@ def load_data(file):
 if uploaded_file:
     df = load_data(uploaded_file)
     df.columns = df.columns.astype(str)
-    st.write("### Data Preview:")
+    st.write("### 📄 Data Preview")
     st.dataframe(df.head())
 
     time_col = df.columns[0]
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-
-    selected_columns = st.multiselect("Select variable(s) for trend analysis:", options=numeric_cols, default=numeric_cols)
+    selected_columns = st.multiselect("📌 Select variable(s) for trend analysis", options=numeric_cols, default=numeric_cols)
 
     if selected_columns:
         results = []
         plot_buffer = BytesIO()
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(14, 6))
 
         for col in selected_columns:
             y = df[col].dropna().values
-            x = np.arange(1, len(y)+1)
-
+            x = np.arange(1, len(y) + 1)
             data = pd.DataFrame({'x': x, 'y': y})
 
             # Fit models
@@ -79,7 +79,7 @@ if uploaded_file:
                     'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={aic(model.llf, len(y), model.df_model+1):.1f}, BIC={bic(model.llf, len(y), model.df_model+1):.1f}"
                 })
 
-            # Plot
+            # Plot actual vs. fitted
             plt.plot(x, y, label=f"{col} Actual", linewidth=2)
             for name, model in models.items():
                 y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
@@ -93,22 +93,21 @@ if uploaded_file:
         plt.savefig(plot_buffer, format='png')
         st.image(plot_buffer)
 
-        # Show table
+        # Summary Table
         result_df = pd.DataFrame(results)
-        st.write("### Model Comparison Summary:")
+        st.write("### 📊 Model Comparison Summary")
         st.dataframe(result_df)
 
-        # Download options
-        st.markdown("#### Download Options")
+        # Download Buttons
+        st.markdown("### 💾 Download Options")
 
         def convert_df(df):
             return df.to_csv(index=False).encode('utf-8')
 
-        st.download_button("Download Table as CSV", data=convert_df(result_df), file_name="model_summary.csv", mime="text/csv")
+        st.download_button("⬇️ Download Table as CSV", data=convert_df(result_df), file_name="model_summary.csv", mime="text/csv")
+        st.download_button("🖼 Download Plot as PNG", data=plot_buffer.getvalue(), file_name="trend_plot.png", mime="image/png")
 
-        st.download_button("Download Plot as PNG", data=plot_buffer.getvalue(), file_name="trend_plot.png", mime="image/png")
-
-        # Generate and download PDF
+        # PDF generation
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
@@ -116,25 +115,25 @@ if uploaded_file:
         for idx, row in result_df.iterrows():
             pdf.multi_cell(0, 10, f"{row['Variable']} - {row['Model']}: {row['Interpretation']}")
 
-       # Generate PDF content as string
         pdf_bytes = pdf.output(dest='S').encode('latin-1')
         pdf_output = BytesIO(pdf_bytes)
 
-st.download_button("Download Report as PDF", data=pdf_output, file_name="trend_report.pdf", mime="application/pdf")
-
+        st.download_button("📄 Download Report as PDF", data=pdf_output, file_name="trend_report.pdf", mime="application/pdf")
 
         st.markdown("""
         ---
-        ### Policy Brief
-        Based on the best-fitting models (lowest AIC/BIC), policymakers can:
-        - Forecast future values of key economic indicators.
-        - Detect growth patterns and potential instability.
-        - Make data-driven decisions in planning and investment.
+        ### 🧩 Policy Brief
+
+        Based on the best-fitting models (lowest AIC/BIC):
+        - Forecast future economic indicators with confidence
+        - Identify structural trends, volatility, or seasonal shifts
+        - Plan interventions or investments aligned with projected trends
+        - Create transparent data-driven governance strategies
         """)
 
 # Footer
-    st.markdown("""
-    ---
-    App developed by **Suman_econ UAS(B)**  
-    For queries, contact your economics/data science instructor or reach out to the developer.
-    """)
+st.markdown("""
+---
+App developed by **Suman_econ UAS(B)**  
+For support, reach out via university research forums or contact the developer.
+""")
