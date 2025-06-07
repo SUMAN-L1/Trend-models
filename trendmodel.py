@@ -116,9 +116,12 @@ if uploaded_file:
         for idx, row in result_df.iterrows():
             pdf.multi_cell(0, 10, f"{row['Variable']} - {row['Model']}: {row['Interpretation']}")
 
-        pdf_output = BytesIO()
-        pdf.output(pdf_output)
-        st.download_button("Download Report as PDF", data=pdf_output.getvalue(), file_name="trend_report.pdf", mime="application/pdf")
+       # Generate PDF content as string
+        pdf_bytes = pdf.output(dest='S').encode('latin-1')
+        pdf_output = BytesIO(pdf_bytes)
+
+st.download_button("Download Report as PDF", data=pdf_output, file_name="trend_report.pdf", mime="application/pdf")
+
 
         st.markdown("""
         ---
