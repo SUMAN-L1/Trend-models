@@ -31,6 +31,9 @@ They are critical for forecasting, investment decisions, and policy formulation.
 # Upload file
 uploaded_file = st.file_uploader("📤 Upload CSV, XLSX, or XLS file", type=["csv", "xlsx", "xls"])
 
+# Context for dynamic policy briefs
+user_context = st.text_area("🧠 Optional: Add real-time context (e.g., market disruptions, export bans, price volatility)")
+
 def load_data(file):
     if file.name.endswith(".csv"):
         return pd.read_csv(file)
@@ -42,17 +45,25 @@ if uploaded_file:
     df.columns = df.columns.astype(str)
     df.dropna(how="all", axis=1, inplace=True)
     time_col = df.columns[0]
-    
-    try:
-        df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
-    except:
-        st.error("First column must be a Date or Year format.")
 
-    df = df.dropna(subset=[time_col])
+    # Convert to datetime
+    df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+    if df[time_col].isnull().any():
+        st.warning("Some rows have invalid or missing date/time values. These rows will be removed.")
+        df = df.dropna(subset=[time_col])
+
     df = df.sort_values(by=time_col)
     df = df.reset_index(drop=True)
 
+    # Interpolate missing values in numeric columns
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+    interpolated = df[numeric_cols].interpolate(method='linear', limit_direction='both')
+    if interpolated.isnull().sum().sum() > 0:
+        st.warning("Linear interpolation could not fill all missing values. Remaining NAs will be excluded.")
+    else:
+        st.info("Missing values handled using linear interpolation.")
+    df[numeric_cols] = interpolated
+
     st.write("### 📄 Data Preview")
     st.dataframe(df.head())
 
@@ -62,8 +73,6 @@ if uploaded_file:
         results = []
         tab1, tab2 = st.tabs(["📊 Trend Plot", "📋 Dashboard"])
 
-        x_vals = df[time_col].dt.to_period("M").astype(str) if df[time_col].dt.to_period("M").is_monotonic else df.index + 1
-
         with tab1:
             fig = go.Figure()
             line_styles = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
@@ -72,7 +81,7 @@ if uploaded_file:
                 y = df[col].dropna().values
                 x = np.arange(1, len(y)+1)
                 data = pd.DataFrame({'x': x, 'y': y})
-                
+
                 models = {
                     'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
                     'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
@@ -125,11 +134,9 @@ if uploaded_file:
                 best_row = result_df[(result_df['Variable'] == col)].sort_values("AIC").iloc[0]
                 st.metric(label=f"{col} - Best Model", value=best_row['Model'], delta=f"R2: {best_row['R2']:.2f}")
 
-            # Downloads
             def convert_df(df): return df.to_csv(index=False).encode('utf-8')
             st.download_button("⬇️ Download Table as CSV", data=convert_df(result_df), file_name="model_summary.csv", mime="text/csv")
 
-            # PDF Report
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", 'B', 16)
@@ -138,6 +145,13 @@ if uploaded_file:
             pdf.ln(10)
             for idx, row in result_df.iterrows():
                 pdf.multi_cell(0, 10, f"{row['Variable']} - {row['Model']}: {row['Interpretation']}")
+
+            if user_context.strip():
+                pdf.ln(10)
+                pdf.set_font("Arial", 'B', 12)
+                pdf.cell(200, 10, "User Context:", ln=True)
+                pdf.set_font("Arial", '', 12)
+                pdf.multi_cell(0, 10, user_context)
 
             pdf_bytes = pdf.output(dest='S').encode('latin-1')
             pdf_output = BytesIO(pdf_bytes)
@@ -150,7 +164,19 @@ if uploaded_file:
             - Allocating budget or subsidies
             - Planning logistics and storage
             - Targeting seasonal interventions
+
+            **Auto-detected trend insights**:
             """)
+            for col in selected_columns:
+                best = result_df[result_df['Variable'] == col].sort_values("AIC").iloc[0]
+                if best['Model'] == "Exponential":
+                    st.info(f"🔹 {col}: Shows exponential growth. Policy can focus on infrastructure scalability and risk mitigation.")
+                elif best['Model'] == "Linear":
+                    st.info(f"🔹 {col}: Displays linear growth. Consider steady policy interventions or capacity planning.")
+                elif best['Model'] in ["Quadratic", "Cubic", "Quartic"]:
+                    st.info(f"🔹 {col}: Shows non-linear trend. Adaptive and responsive policies may be needed.")
+            if user_context:
+                st.markdown(f"**User-stated context considered:** {user_context}")
 
 # Footer
 st.markdown("""
