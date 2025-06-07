@@ -2,15 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.metrics import mean_squared_error
 import statsmodels.api as sm
-from statsmodels.tools.eval_measures import aic, bic
-from io import BytesIO
 from fpdf import FPDF
 from datetime import datetime
-import seaborn as sns
+from io import BytesIO
 
 # Set page config
 st.set_page_config(page_title="Trend models for time series data [by Suman_econ UAS(B)]", layout="wide")
@@ -31,9 +28,9 @@ They are critical for forecasting, investment decisions, and policy formulation.
 # Upload file
 uploaded_file = st.file_uploader("📤 Upload CSV, XLSX, or XLS file", type=["csv", "xlsx", "xls"])
 
-# Context for dynamic policy briefs
-user_context = st.text_area("🧠 Optional: Add real-time context (e.g., market disruptions, export bans, price volatility)")
+# Remove optional real-time context field
 
+# Load data
 def load_data(file):
     if file.name.endswith(".csv"):
         return pd.read_csv(file)
@@ -46,16 +43,15 @@ if uploaded_file:
     df.dropna(how="all", axis=1, inplace=True)
     time_col = df.columns[0]
 
-    # Convert to datetime
+    # Convert first column to datetime
     df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
     if df[time_col].isnull().any():
         st.warning("Some rows have invalid or missing date/time values. These rows will be removed.")
         df = df.dropna(subset=[time_col])
 
-    df = df.sort_values(by=time_col)
-    df = df.reset_index(drop=True)
+    df = df.sort_values(by=time_col).reset_index(drop=True)
 
-    # Interpolate missing values in numeric columns
+    # Interpolate numeric columns
     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
     interpolated = df[numeric_cols].interpolate(method='linear', limit_direction='both')
     if interpolated.isnull().sum().sum() > 0:
@@ -73,65 +69,66 @@ if uploaded_file:
         results = []
         tab1, tab2 = st.tabs(["📊 Trend Plot", "📋 Dashboard"])
 
-    for col in selected_columns:
-        y = df[col].dropna().values
-        x = np.arange(1, len(y)+1)
-        data = pd.DataFrame({'x': x, 'y': y})
-    
-        models = {
-            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
-            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
-            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
-            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
-            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
-        }
-    
-        best_model = None
-        best_aic = float('inf')
-    
-        for i, (name, model) in enumerate(models.items()):
-            if name == 'Exponential':
-                y_fitted = np.exp(model.fittedvalues)
-                rmse = np.sqrt(mean_squared_error(y, y_fitted))
-            else:
-                y_fitted = model.fittedvalues
-                rmse = np.sqrt(mean_squared_error(y, y_fitted))
-    
-            if model.aic < best_aic:
-                best_aic = model.aic
-                best_model = name
-    
-            results.append({
-                'Variable': col,
-                'Model': name,
-                'R2': model.rsquared,
-                'Adj R2': model.rsquared_adj,
-                'RMSE': rmse,
-                'AIC': model.aic,
-                'BIC': model.bic,
-                'Interpretation': f"R2={model.rsquared:.6f}, AdjR2={model.rsquared_adj:.6f}, RMSE={rmse:.6f}, AIC={model.aic:.6f}, BIC={model.bic:.6f}"
-            })
-    
-            fig.add_trace(go.Scatter(
-                x=df[time_col],
-                y=y_fitted,
-                mode='lines',
-                name=f"{col} - {name}",
-                line=dict(dash=line_styles[i % len(line_styles)])
-            ))
-    
-        fig.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
-        st.success(f"📌 Best model for **{col}** is: {best_model}")
+        line_styles = ["solid", "dot", "dash", "longdash", "dashdot"]
 
+        with tab1:
+            for col in selected_columns:
+                y = df[col].dropna().values
+                x = np.arange(1, len(y) + 1)
+                data = pd.DataFrame({'x': x, 'y': y})
 
-            st.plotly_chart(fig, use_container_width=True)
+                models = {
+                    'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
+                    'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x'] ** 2)))).fit(),
+                    'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x'] ** 2, data['x'] ** 3)))).fit(),
+                    'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x'] ** 2, data['x'] ** 3, data['x'] ** 4)))).fit(),
+                    'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
+                }
+
+                best_model = None
+                best_aic = float('inf')
+                fig = go.Figure()
+
+                for i, (name, model) in enumerate(models.items()):
+                    if name == 'Exponential':
+                        y_fitted = np.exp(model.fittedvalues)
+                        rmse = np.sqrt(mean_squared_error(y, y_fitted))
+                    else:
+                        y_fitted = model.fittedvalues
+                        rmse = np.sqrt(mean_squared_error(y, y_fitted))
+
+                    if model.aic < best_aic:
+                        best_aic = model.aic
+                        best_model = name
+
+                    results.append({
+                        'Variable': col,
+                        'Model': name,
+                        'R2': model.rsquared,
+                        'Adj R2': model.rsquared_adj,
+                        'RMSE': rmse,
+                        'AIC': model.aic,
+                        'BIC': model.bic,
+                        'Interpretation': f"R2={model.rsquared:.6f}, AdjR2={model.rsquared_adj:.6f}, RMSE={rmse:.6f}, AIC={model.aic:.6f}, BIC={model.bic:.6f}"
+                    })
+
+                    fig.add_trace(go.Scatter(
+                        x=df[time_col],
+                        y=y_fitted,
+                        mode='lines',
+                        name=f"{col} - {name}",
+                        line=dict(dash=line_styles[i % len(line_styles)])
+                    ))
+
+                fig.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
+                st.success(f"📌 Best model for **{col}** is: {best_model}")
+                st.plotly_chart(fig, use_container_width=True)
 
         with tab2:
             result_df = pd.DataFrame(results)
             st.write("### 📋 Model Summary Table")
             st.dataframe(result_df)
 
-            # KPI Dashboard
             st.markdown("### 📌 Model KPI Cards")
             for col in selected_columns:
                 best_row = result_df[(result_df['Variable'] == col)].sort_values("AIC").iloc[0]
@@ -148,13 +145,6 @@ if uploaded_file:
             pdf.ln(10)
             for idx, row in result_df.iterrows():
                 pdf.multi_cell(0, 10, f"{row['Variable']} - {row['Model']}: {row['Interpretation']}")
-
-            if user_context.strip():
-                pdf.ln(10)
-                pdf.set_font("Arial", 'B', 12)
-                pdf.cell(200, 10, "User Context:", ln=True)
-                pdf.set_font("Arial", '', 12)
-                pdf.multi_cell(0, 10, user_context)
 
             pdf_bytes = pdf.output(dest='S').encode('latin-1')
             pdf_output = BytesIO(pdf_bytes)
@@ -178,8 +168,6 @@ if uploaded_file:
                     st.info(f"🔹 {col}: Displays linear growth. Consider steady policy interventions or capacity planning.")
                 elif best['Model'] in ["Quadratic", "Cubic", "Quartic"]:
                     st.info(f"🔹 {col}: Shows non-linear trend. Adaptive and responsive policies may be needed.")
-            if user_context:
-                st.markdown(f"**User-stated context considered:** {user_context}")
 
 # Footer
 st.markdown("""
