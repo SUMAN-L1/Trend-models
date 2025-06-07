@@ -136,5 +136,5 @@ if uploaded_file:
 st.markdown("""
 ---
 App developed by **Suman_econ UAS(B)**  
-For support, contact: sumanecon.uas@outlook.in
+For support, contact: sumanecon.uas@outlook.in 
 """)
