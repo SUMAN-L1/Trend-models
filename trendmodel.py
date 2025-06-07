@@ -8,7 +8,7 @@ from statsmodels.tools.eval_measures import aic, bic
 from io import BytesIO
 from fpdf import FPDF
 
-st.set_page_config(page_title="Trend models for time series data [by Suman_econ UAS(B)]", layout="wide")
+st.set_page_config(page_title="Trend models for time series [by Suman_econ UAS(B)]", layout="wide")
 st.title("📈 Trend models for time series data [by Suman_econ UAS(B)]")
 
 st.markdown("""
@@ -104,7 +104,7 @@ if uploaded_file:
                 })
 
             best_model = min(model_scores, key=lambda x: x[1])
-            best_models[col] = best_model  # (name, score, model, y_pred)
+            best_models[col] = best_model
 
         plt.xlabel("Year / Date")
         plt.ylabel("Value")
@@ -114,20 +114,20 @@ if uploaded_file:
         plt.savefig(plot_buffer, format='png')
         st.image(plot_buffer)
 
-        # Display summary table with highlight
+        # Summary Table with highlight
         result_df = pd.DataFrame(results)
 
-        def highlight_best(s):
+        def highlight_best(row):
             is_best = (
-                (result_df['Variable'] == s['Variable']) &
-                (result_df['Model'] == best_models[s['Variable']][0])
-            )
-            return ['background-color: orange; font-weight: bold' if b else '' for b in is_best]
+                (result_df['Variable'] == row['Variable']) &
+                (result_df['Model'] == best_models[row['Variable']][0])
+            ).any()
+            return ['background-color: orange; font-weight: bold' if is_best else '' for _ in row]
 
         st.write("### 📊 Model Comparison Summary")
         st.dataframe(result_df.style.apply(highlight_best, axis=1))
 
-        # Forecasting
+        # Forecast
         forecast_buffer = BytesIO()
         plt.figure(figsize=(12, 5))
 
@@ -168,7 +168,7 @@ if uploaded_file:
         plt.savefig(forecast_buffer, format='png')
         st.image(forecast_buffer)
 
-        # Downloads
+        # Download options
         st.markdown("### 💾 Download Options")
 
         def convert_df(df):
@@ -189,7 +189,6 @@ if uploaded_file:
         pdf_output = BytesIO(pdf_bytes)
         st.download_button("📄 Download Report as PDF", data=pdf_output, file_name="trend_report.pdf", mime="application/pdf")
 
-        # Policy Brief
         st.markdown("""
         ---
         ### 🧩 Policy Brief
@@ -205,5 +204,5 @@ if uploaded_file:
 st.markdown("""
 ---
 App developed by **Suman_econ UAS(B)**  
-For support, reach out via university research forums or contact the developer.
+For support, reach out via sumaneconuas@outlook.in to the developer.
 """)
