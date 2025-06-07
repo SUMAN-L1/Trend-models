@@ -73,53 +73,56 @@ if uploaded_file:
         results = []
         tab1, tab2 = st.tabs(["📊 Trend Plot", "📋 Dashboard"])
 
-        with tab1:
-            fig = go.Figure()
-            line_styles = ['solid', 'dash', 'dot', 'dashdot', 'longdash']
+    for col in selected_columns:
+        y = df[col].dropna().values
+        x = np.arange(1, len(y)+1)
+        data = pd.DataFrame({'x': x, 'y': y})
+    
+        models = {
+            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
+            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
+            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
+            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
+            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
+        }
+    
+        best_model = None
+        best_aic = float('inf')
+    
+        for i, (name, model) in enumerate(models.items()):
+            if name == 'Exponential':
+                y_fitted = np.exp(model.fittedvalues)
+                rmse = np.sqrt(mean_squared_error(y, y_fitted))
+            else:
+                y_fitted = model.fittedvalues
+                rmse = np.sqrt(mean_squared_error(y, y_fitted))
+    
+            if model.aic < best_aic:
+                best_aic = model.aic
+                best_model = name
+    
+            results.append({
+                'Variable': col,
+                'Model': name,
+                'R2': model.rsquared,
+                'Adj R2': model.rsquared_adj,
+                'RMSE': rmse,
+                'AIC': model.aic,
+                'BIC': model.bic,
+                'Interpretation': f"R2={model.rsquared:.6f}, AdjR2={model.rsquared_adj:.6f}, RMSE={rmse:.6f}, AIC={model.aic:.6f}, BIC={model.bic:.6f}"
+            })
+    
+            fig.add_trace(go.Scatter(
+                x=df[time_col],
+                y=y_fitted,
+                mode='lines',
+                name=f"{col} - {name}",
+                line=dict(dash=line_styles[i % len(line_styles)])
+            ))
+    
+        fig.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
+        st.success(f"📌 Best model for **{col}** is: {best_model}")
 
-            for col in selected_columns:
-                y = df[col].dropna().values
-                x = np.arange(1, len(y)+1)
-                data = pd.DataFrame({'x': x, 'y': y})
-
-                models = {
-                    'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
-                    'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
-                    'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
-                    'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
-                    'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
-                }
-
-                best_model = None
-                best_aic = float('inf')
-
-                for i, (name, model) in enumerate(models.items()):
-                    y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
-                    rmse = np.sqrt(mean_squared_error(y, y_pred))
-                    current_aic = aic(model.llf, len(y), model.df_model+1)
-                    if current_aic < best_aic:
-                        best_aic = current_aic
-                        best_model = name
-                    results.append({
-                        'Variable': col,
-                        'Model': name,
-                        'R2': model.rsquared,
-                        'Adj R2': model.rsquared_adj,
-                        'RMSE': rmse,
-                        'AIC': current_aic,
-                        'BIC': bic(model.llf, len(y), model.df_model+1),
-                        'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={current_aic:.1f}"
-                    })
-
-                    fig.add_trace(go.Scatter(
-                        x=df[time_col],
-                        y=y_pred,
-                        mode='lines',
-                        name=f"{col} - {name}",
-                        line=dict(dash=line_styles[i % len(line_styles)])
-                    ))
-                fig.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
-                st.success(f"📌 Best model for **{col}** is: {best_model}")
 
             st.plotly_chart(fig, use_container_width=True)
 
