@@ -71,7 +71,7 @@ if uploaded_file:
 
     if selected_columns:
         results = []
-        tab1, tab2 = st.tabs(["📊 Trend Plot (Index-based)", "📊 Trend Plot (Date-based)", "📋 Dashboard"])
+        tab1, tab2 = st.tabs(["📊 Trend Plot", "📋 Dashboard"])
 
         with tab1:
             fig = go.Figure()
@@ -79,8 +79,8 @@ if uploaded_file:
 
             for col in selected_columns:
                 y = df[col].dropna().values
-                x_index = np.arange(1, len(y)+1)  # R-like index
-                data = pd.DataFrame({'x': x_index, 'y': y})
+                x = np.arange(1, len(y)+1)
+                data = pd.DataFrame({'x': x, 'y': y})
 
                 models = {
                     'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
@@ -112,48 +112,18 @@ if uploaded_file:
                     })
 
                     fig.add_trace(go.Scatter(
-                        x=x_index,
-                        y=y_pred,
-                        mode='lines',
-                        name=f"{col} - {name}",
-                        line=dict(dash=line_styles[i % len(line_styles)])
-                    ))
-                fig.add_trace(go.Scatter(x=x_index, y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
-                st.success(f"📌 Best model for **{col}** is: {best_model}")
-
-            st.plotly_chart(fig, use_container_width=True)
-
-        with tab2:
-            fig_date = go.Figure()
-            for col in selected_columns:
-                y = df[col].dropna().values
-                x_index = np.arange(1, len(y)+1)
-                data = pd.DataFrame({'x': x_index, 'y': y})
-
-                models = {
-                    'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
-                    'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
-                    'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
-                    'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
-                    'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
-                }
-
-                best_model = None
-                best_aic = float('inf')
-
-                for i, (name, model) in enumerate(models.items()):
-                    y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
-                    fig_date.add_trace(go.Scatter(
                         x=df[time_col],
                         y=y_pred,
                         mode='lines',
                         name=f"{col} - {name}",
                         line=dict(dash=line_styles[i % len(line_styles)])
                     ))
-                fig_date.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
-            st.plotly_chart(fig_date, use_container_width=True)
+                fig.add_trace(go.Scatter(x=df[time_col], y=y, mode='markers', name=f"{col} Actual", marker=dict(size=6)))
+                st.success(f"📌 Best model for **{col}** is: {best_model}")
 
-        with tab3:
+            st.plotly_chart(fig, use_container_width=True)
+
+        with tab2:
             result_df = pd.DataFrame(results)
             st.write("### 📋 Model Summary Table")
             st.dataframe(result_df)
