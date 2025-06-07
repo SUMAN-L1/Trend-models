@@ -1,3 +1,88 @@
+if selected_columns:
+    results = []
+    plot_buffer = BytesIO()
+    plot_buffer_actual = BytesIO()
+
+    df[time_col] = pd.to_datetime(df[time_col], errors='coerce')
+    df = df.dropna(subset=[time_col])  # Drop rows where time conversion failed
+    df = df.reset_index(drop=True)
+
+    # Plot using Index
+    plt.figure(figsize=(14, 6))
+    for col in selected_columns:
+        y = df[col].dropna().values
+        x = np.arange(1, len(y) + 1)
+        data = pd.DataFrame({'x': x, 'y': y})
+
+        models = {
+            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
+            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
+            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
+            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
+            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
+        }
+
+        line_styles = {
+            'Linear': 'solid',
+            'Quadratic': 'dashed',
+            'Cubic': 'dashdot',
+            'Quartic': 'dotted',
+            'Exponential': (0, (3, 5, 1, 5))
+        }
+
+        plt.plot(x, y, label=f"{col} Actual", linewidth=2)
+
+        for name, model in models.items():
+            y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
+            plt.plot(x, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
+            rmse = np.sqrt(mean_squared_error(y, y_pred))
+            results.append({
+                'Variable': col,
+                'Model': name,
+                'R2': model.rsquared,
+                'Adj R2': model.rsquared_adj,
+                'RMSE': rmse,
+                'AIC': aic(model.llf, len(y), model.df_model+1),
+                'BIC': bic(model.llf, len(y), model.df_model+1),
+                'Interpretation': f"R2={model.rsquared:.3f}, AdjR2={model.rsquared_adj:.3f}, RMSE={rmse:.2f}, AIC={aic(model.llf, len(y), model.df_model+1):.1f}, BIC={bic(model.llf, len(y), model.df_model+1):.1f}"
+            })
+
+    plt.xlabel("Index")
+    plt.ylabel("Value")
+    plt.title("Actual vs Fitted Trends (Index on X-axis)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(plot_buffer, format='png')
+    st.image(plot_buffer, caption="📉 Plot with Index on X-axis")
+
+    # Plot using Date/Year
+    plt.figure(figsize=(14, 6))
+    for col in selected_columns:
+        y = df[col].dropna().values
+        x_time = df[time_col].iloc[:len(y)]
+        x_num = np.arange(1, len(y) + 1)
+        data = pd.DataFrame({'x': x_num, 'y': y})
+
+        models = {
+            'Linear': sm.OLS(data['y'], sm.add_constant(data['x'])).fit(),
+            'Quadratic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2)))).fit(),
+            'Cubic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3)))).fit(),
+            'Quartic': sm.OLS(data['y'], sm.add_constant(np.column_stack((data['x'], data['x']**2, data['x']**3, data['x']**4)))).fit(),
+            'Exponential': sm.OLS(np.log(data['y']), sm.add_constant(data['x'])).fit()
+        }
+
+        plt.plot(x_time, y, label=f"{col} Actual", linewidth=2)
+        for name, model in models.items():
+            y_pred = model.fittedvalues if name != 'Exponential' else np.exp(model.fittedvalues)
+            plt.plot(x_time, y_pred, label=f"{col} - {name}", linestyle=line_styles[name])
+
+    plt.xlabel("Date/Year")
+    plt.ylabel("Value")
+    plt.title("Actual vs Fitted Trends (Date/Year on X-axis)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(plot_buffer_actual, format='png')
+    st.image(plot_buffer_actual, caption="📉 Plot with Date/Year on X-axis")
 import streamlit as st
 import pandas as pd
 import numpy as np
