@@ -133,8 +133,8 @@ st.download_button("Download Report as PDF", data=pdf_output, file_name="trend_r
         """)
 
 # Footer
-st.markdown("""
----
-App developed by **Suman_econ UAS(B)**  
-For queries, contact your economics/data science instructor or reach out to the developer.
-""")
+    st.markdown("""
+    ---
+    App developed by **Suman_econ UAS(B)**  
+    For queries, contact your economics/data science instructor or reach out to the developer.
+    """)
